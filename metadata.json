@@ -1,0 +1,6 @@
+{
+  "name": "HabitFlow",
+  "description": "Daily habit tracker and analytics with activity heatmaps, weekly progress charts, and smart reminders.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

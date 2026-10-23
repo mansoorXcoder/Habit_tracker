@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Center group within safe area -->
+    <group
+        android:translateX="18"
+        android:translateY="18">
+        <!-- Sprouting Plant / Leaf Silhouette in 72x72 space -->
+        <!-- Main Stem -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M36,64 C35,50 35,38 36,24 C37,24 38,24 39,24 C40,38 40,50 39,64 Z" />
+        <!-- Right Leaf -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M37,34 C44,22 58,22 62,24 C64,34 56,48 37,42 Z" />
+        <!-- Left Leaf -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M36,44 C28,34 16,36 12,40 C12,50 22,60 36,50 Z" />
+        <!-- Small top bud / leaf -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M36,24 C31,16 34,10 38,8 C42,10 44,16 38,24 Z" />
+    </group>
+</vector>
