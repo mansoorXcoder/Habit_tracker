@@ -1,7 +1,6 @@
 package com.example
 
 import android.Manifest
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -22,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.receiver.NotificationHelper
@@ -34,8 +32,8 @@ import com.example.ui.screens.HabitsListScreen
 import com.example.ui.screens.ProfileScreen
 import com.example.ui.screens.ProgressScreen
 import com.example.ui.screens.TodayScreen
-import com.example.ui.theme.HabitBackgroundLight
 import com.example.ui.theme.HabitFlowTheme
+import com.example.ui.theme.MonoBackgroundLight
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,6 +72,7 @@ fun MainApp(habitViewModel: HabitViewModel = viewModel()) {
     val todayHabits by habitViewModel.todayHabits.collectAsStateWithLifecycle()
     val progressStats by habitViewModel.progressStats.collectAsStateWithLifecycle()
     val allHabits by habitViewModel.allHabits.collectAsStateWithLifecycle()
+    val allCategories by habitViewModel.allCategories.collectAsStateWithLifecycle()
     val habitDetailPair by habitViewModel.selectedHabitDetail.collectAsStateWithLifecycle()
 
     // Handle back button
@@ -87,7 +86,7 @@ fun MainApp(habitViewModel: HabitViewModel = viewModel()) {
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
-        containerColor = HabitBackgroundLight,
+        containerColor = MonoBackgroundLight,
         bottomBar = {
             HabitBottomBar(
                 selectedTab = if (selectedHabitId != null) 2 else selectedTab,
@@ -100,7 +99,7 @@ fun MainApp(habitViewModel: HabitViewModel = viewModel()) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(HabitBackgroundLight)
+                .background(MonoBackgroundLight)
                 .padding(bottom = innerPadding.calculateBottomPadding())
                 .windowInsetsPadding(WindowInsets.statusBars)
         ) {
@@ -129,18 +128,21 @@ fun MainApp(habitViewModel: HabitViewModel = viewModel()) {
                         onSettingsClick = { habitViewModel.selectTab(3) }
                     )
                     1 -> ProgressScreen(
-                        progressStats = progressStats,
-                        onCategoryClick = { _ -> habitViewModel.selectTab(2) }
+                        progressStats = progressStats
                     )
                     2 -> HabitsListScreen(
                         habits = allHabits,
+                        categories = allCategories,
                         onHabitClick = { habitId -> habitViewModel.selectHabit(habitId) },
-                        onAddHabitClick = { habitViewModel.openAddHabit() }
+                        onAddHabitClick = { habitViewModel.openAddHabit() },
+                        onEditHabitClick = { h -> habitViewModel.openEditHabit(h) },
+                        onDeleteHabitClick = { id -> habitViewModel.deleteHabit(id) },
+                        onAddCategoryClick = { name -> habitViewModel.addCustomCategory(name) }
                     )
                     3 -> ProfileScreen(
                         userName = userName,
                         onUpdateUserName = { newName -> habitViewModel.updateUserName(newName) },
-                        onResetData = { habitViewModel.resetToSampleData() },
+                        onResetAllData = { habitViewModel.resetAllData() },
                         currentStreak = progressStats.currentStreakDays,
                         completionRate = progressStats.completionRatePercent,
                         totalHabits = allHabits.size
@@ -153,6 +155,7 @@ fun MainApp(habitViewModel: HabitViewModel = viewModel()) {
     if (isAddEditSheetOpen) {
         AddEditHabitBottomSheet(
             habitToEdit = habitToEdit,
+            availableCategories = allCategories,
             onDismiss = { habitViewModel.closeAddEditSheet() },
             onSave = { id, title, subtitle, category, iconName, goal, freq, reminder, reminderEnabled ->
                 habitViewModel.saveHabit(

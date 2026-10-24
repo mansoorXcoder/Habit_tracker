@@ -4,20 +4,24 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.db.AppDatabase
+import com.example.data.model.CategoryEntity
 import com.example.data.model.HabitEntity
 import com.example.data.model.HabitLogEntity
 import com.example.data.model.HabitWithLog
 import com.example.data.model.ProgressStats
 import com.example.data.repository.HabitRepository
 import com.example.receiver.NotificationHelper
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class HabitViewModel(application: Application) : AndroidViewModel(application) {
 
     private val database = AppDatabase.getInstance(application)
@@ -40,6 +44,10 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
     private val _habitToEdit = MutableStateFlow<HabitEntity?>(null)
     val habitToEdit: StateFlow<HabitEntity?> = _habitToEdit.asStateFlow()
 
+    // Calendar selected date (Format: YYYY-MM-DD)
+    private val _selectedCalendarDate = MutableStateFlow(repository.getTodayDateString())
+    val selectedCalendarDate: StateFlow<String> = _selectedCalendarDate.asStateFlow()
+
     val todayHabits: StateFlow<List<HabitWithLog>> = repository.getTodayHabits()
         .stateIn(
             scope = viewModelScope,
@@ -55,6 +63,22 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         )
 
     val allHabits: StateFlow<List<HabitEntity>> = repository.allHabits
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    val allCategories: StateFlow<List<CategoryEntity>> = repository.allCategories
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    // Dynamic habits for whatever calendar date is currently clicked/selected
+    val selectedDateHabits: StateFlow<List<HabitWithLog>> = _selectedCalendarDate
+        .flatMapLatest { dateStr -> repository.getHabitsForDate(dateStr) }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -91,6 +115,10 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearSelectedHabit() {
         _selectedHabitId.value = null
+    }
+
+    fun selectCalendarDate(dateString: String) {
+        _selectedCalendarDate.value = dateString
     }
 
     fun toggleHabitToday(habitId: Long) {
@@ -154,7 +182,6 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
             // Schedule or cancel reminder
             val context = getApplication<Application>()
             if (reminderEnabled) {
-                // Parse reminder time (e.g. "9:00 AM")
                 val parts = reminderTime.split(" ")
                 val timeParts = parts.getOrNull(0)?.split(":")
                 var hour = timeParts?.getOrNull(0)?.toIntOrNull() ?: 9
@@ -188,13 +215,29 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun addCustomCategory(name: String) {
+        if (name.isBlank()) return
+        viewModelScope.launch {
+            repository.addCategory(name.trim())
+        }
+    }
+
+    fun deleteCustomCategory(id: Long) {
+        viewModelScope.launch {
+            repository.deleteCategory(id)
+        }
+    }
+
     fun updateUserName(newName: String) {
         _userName.value = newName
     }
 
-    fun resetToSampleData() {
+    // Reset All Data: Clears database back to clean blank slate with default categories
+    fun resetAllData() {
         viewModelScope.launch {
-            repository.resetToSampleData()
+            repository.resetAllData()
+            _selectedHabitId.value = null
+            _selectedCalendarDate.value = repository.getTodayDateString()
         }
     }
 }

@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,12 +22,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -36,6 +40,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,12 +57,17 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.HabitEntity
 import com.example.data.model.HabitLogEntity
 import com.example.ui.components.HabitIconBadge
-import com.example.ui.components.HabitIcons
 import com.example.ui.components.MonthlyCalendarView
-import com.example.ui.theme.HabitGreenPrimary
-import com.example.ui.theme.HabitOutlineVariant
-import com.example.ui.theme.HabitTextPrimary
-import com.example.ui.theme.HabitTextSecondary
+import com.example.ui.theme.MonoBlack
+import com.example.ui.theme.MonoBorder
+import com.example.ui.theme.MonoGrayLight
+import com.example.ui.theme.MonoGrayMedium
+import com.example.ui.theme.MonoSurfaceVariant
+import com.example.ui.theme.MonoWhite
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun HabitDetailScreen(
@@ -71,20 +81,82 @@ fun HabitDetailScreen(
 ) {
     if (habit == null) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(text = "Habit not found", color = HabitTextSecondary)
+            Text(text = "Habit not found", color = MonoGrayMedium)
         }
         return
     }
 
     var menuExpanded by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
 
-    // Streak calculations for this habit
-    val completedLogs = logs.filter { it.completed }
-    val totalCount = completedLogs.size
-    val currentStreak = 7 // matching prototype
-    val bestStreak = 12
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    val displayDateFormat = SimpleDateFormat("MMM d, yyyy", Locale.US)
+    var selectedCalendarDate by remember { mutableStateOf(dateFormat.format(Date())) }
 
-    val (catBg, catText) = HabitIcons.getCategoryColors(habit.category)
+    // 100% Dynamic Streak & Completion Calculations from actual stored logs
+    val completedDates = logs.filter { it.completed }.map { it.dateString }.toSet()
+    val totalCompletions = completedDates.size
+
+    // Dynamic Current Streak calculation
+    var currentStreak = 0
+    val streakCal = Calendar.getInstance()
+    val todayFormatted = dateFormat.format(streakCal.time)
+    if (completedDates.contains(todayFormatted)) {
+        currentStreak++
+        streakCal.add(Calendar.DAY_OF_YEAR, -1)
+    } else {
+        streakCal.add(Calendar.DAY_OF_YEAR, -1)
+        if (completedDates.contains(dateFormat.format(streakCal.time))) {
+            currentStreak++
+            streakCal.add(Calendar.DAY_OF_YEAR, -1)
+        }
+    }
+    if (currentStreak > 0) {
+        while (true) {
+            if (completedDates.contains(dateFormat.format(streakCal.time))) {
+                currentStreak++
+                streakCal.add(Calendar.DAY_OF_YEAR, -1)
+            } else {
+                break
+            }
+        }
+    }
+
+    // Dynamic Best Streak calculation
+    val sortedDates = completedDates.sorted()
+    var bestStreak = 0
+    var tempStreak = 0
+    var previousCal: Calendar? = null
+    for (dStr in sortedDates) {
+        val c = Calendar.getInstance()
+        try {
+            c.time = dateFormat.parse(dStr) ?: continue
+        } catch (_: Exception) {
+            continue
+        }
+        if (previousCal == null) {
+            tempStreak = 1
+        } else {
+            val diffDays = ((c.timeInMillis - previousCal.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
+            if (diffDays == 1) {
+                tempStreak++
+            } else if (diffDays > 1) {
+                tempStreak = 1
+            }
+        }
+        if (tempStreak > bestStreak) {
+            bestStreak = tempStreak
+        }
+        previousCal = c
+    }
+    bestStreak = maxOf(bestStreak, currentStreak)
+
+    val isSelectedDateCompleted = completedDates.contains(selectedCalendarDate)
+    val selectedDateFormatted = try {
+        displayDateFormat.format(dateFormat.parse(selectedCalendarDate) ?: Date())
+    } catch (_: Exception) {
+        selectedCalendarDate
+    }
 
     Column(
         modifier = modifier
@@ -106,7 +178,7 @@ fun HabitDetailScreen(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = HabitTextPrimary
+                    tint = MonoBlack
                 )
             }
 
@@ -114,7 +186,7 @@ fun HabitDetailScreen(
                 text = "Habit Detail",
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
-                color = HabitTextPrimary
+                color = MonoBlack
             )
 
             Box {
@@ -125,7 +197,7 @@ fun HabitDetailScreen(
                     Icon(
                         imageVector = Icons.Default.MoreHoriz,
                         contentDescription = "Options",
-                        tint = HabitTextPrimary
+                        tint = MonoBlack
                     )
                 }
 
@@ -144,7 +216,7 @@ fun HabitDetailScreen(
                         text = { Text("Delete Habit", color = Color(0xFFDC2626)) },
                         onClick = {
                             menuExpanded = false
-                            onDeleteHabit(habit.id)
+                            showDeleteConfirmDialog = true
                         }
                     )
                 }
@@ -164,8 +236,8 @@ fun HabitDetailScreen(
                         .fillMaxWidth()
                         .testTag("habit_detail_header_card"),
                     shape = RoundedCornerShape(22.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    border = BorderStroke(1.dp, HabitOutlineVariant),
+                    colors = CardDefaults.cardColors(containerColor = MonoWhite),
+                    border = BorderStroke(1.dp, MonoBorder),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Row(
@@ -189,31 +261,33 @@ fun HabitDetailScreen(
                                     text = habit.title,
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = HabitTextPrimary
+                                    color = MonoBlack
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(12.dp))
-                                        .background(catBg)
+                                        .background(MonoSurfaceVariant)
+                                        .border(BorderStroke(1.dp, MonoBorder), RoundedCornerShape(12.dp))
                                         .padding(horizontal = 8.dp, vertical = 3.dp)
                                 ) {
                                     Text(
                                         text = habit.category,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = catText
+                                        color = MonoBlack
                                     )
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            Text(
-                                text = if (habit.subtitle.isNotBlank()) habit.subtitle else "Build something every day",
-                                fontSize = 12.sp,
-                                color = HabitTextSecondary
-                            )
+                            if (habit.subtitle.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = habit.subtitle,
+                                    fontSize = 12.sp,
+                                    color = MonoGrayMedium
+                                )
+                            }
                         }
                     }
                 }
@@ -224,26 +298,14 @@ fun HabitDetailScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    border = BorderStroke(1.dp, HabitOutlineVariant),
+                    colors = CardDefaults.cardColors(containerColor = MonoWhite),
+                    border = BorderStroke(1.dp, MonoBorder),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(modifier = Modifier.padding(vertical = 8.dp, horizontal = 16.dp)) {
-                        SpecRow(
-                            icon = Icons.Default.Flag,
-                            label = "Goal",
-                            value = habit.goalDuration
-                        )
-                        SpecRow(
-                            icon = Icons.Default.Repeat,
-                            label = "Frequency",
-                            value = habit.frequency
-                        )
-                        SpecRow(
-                            icon = Icons.Default.Notifications,
-                            label = "Reminder",
-                            value = habit.reminderTime
-                        )
+                        SpecRow(icon = Icons.Default.Flag, label = "Goal", value = habit.goalDuration)
+                        SpecRow(icon = Icons.Default.Repeat, label = "Frequency", value = habit.frequency)
+                        SpecRow(icon = Icons.Default.Notifications, label = "Reminder", value = habit.reminderTime)
                         SpecClickableRow(
                             icon = Icons.Default.Edit,
                             label = "Edit Habit",
@@ -257,20 +319,77 @@ fun HabitDetailScreen(
             item {
                 MonthlyCalendarView(
                     habitLogs = logs,
-                    onDateClick = { onToggleDate(it) },
+                    selectedDate = selectedCalendarDate,
+                    onDateClick = { clickedDate -> selectedCalendarDate = clickedDate },
                     modifier = Modifier.testTag("completion_history_calendar")
                 )
             }
 
-            // Streak History Card
+            // Date-Specific Completion Card (Shows status for selected date + toggle button)
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = MonoSurfaceVariant),
+                    border = BorderStroke(1.dp, MonoBorder)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = selectedDateFormatted,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MonoBlack
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = if (isSelectedDateCompleted) "Completed" else "Not completed",
+                                fontSize = 11.sp,
+                                color = if (isSelectedDateCompleted) MonoBlack else MonoGrayMedium,
+                                fontWeight = if (isSelectedDateCompleted) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        }
+
+                        Button(
+                            onClick = { onToggleDate(selectedCalendarDate) },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isSelectedDateCompleted) MonoWhite else MonoBlack,
+                                contentColor = if (isSelectedDateCompleted) MonoBlack else MonoWhite
+                            ),
+                            border = BorderStroke(1.dp, MonoBorder)
+                        ) {
+                            Icon(
+                                imageVector = if (isSelectedDateCompleted) Icons.Default.Close else Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (isSelectedDateCompleted) "Mark Incomplete" else "Mark Done",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Streak History Card (100% Dynamic!)
             item {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("streak_history_card"),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    border = BorderStroke(1.dp, HabitOutlineVariant),
+                    colors = CardDefaults.cardColors(containerColor = MonoWhite),
+                    border = BorderStroke(1.dp, MonoBorder),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -278,7 +397,7 @@ fun HabitDetailScreen(
                             Icon(
                                 imageVector = Icons.Default.LocalFireDepartment,
                                 contentDescription = null,
-                                tint = HabitGreenPrimary,
+                                tint = MonoBlack,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -286,7 +405,7 @@ fun HabitDetailScreen(
                                 text = "Streak History",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = HabitTextPrimary
+                                color = MonoBlack
                             )
                         }
 
@@ -297,11 +416,11 @@ fun HabitDetailScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // 3 stat circles: Current (7), Best (12), Total (18)
+                            // 3 stat circles: Current, Best, Total
                             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                                 StreakStatCircle(value = "$currentStreak", label = "Current")
                                 StreakStatCircle(value = "$bestStreak", label = "Best")
-                                StreakStatCircle(value = "${maxOf(totalCount, 18)}", label = "Total")
+                                StreakStatCircle(value = "$totalCompletions", label = "Total")
                             }
 
                             // Longest streak
@@ -309,17 +428,17 @@ fun HabitDetailScreen(
                                 Icon(
                                     imageVector = Icons.Default.BarChart,
                                     contentDescription = null,
-                                    tint = HabitGreenPrimary,
+                                    tint = MonoBlack,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Column {
-                                    Text(text = "Longest streak", fontSize = 10.sp, color = HabitTextSecondary)
+                                    Text(text = "Longest streak", fontSize = 10.sp, color = MonoGrayMedium)
                                     Text(
                                         text = "$bestStreak days",
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = HabitTextPrimary
+                                        color = MonoBlack
                                     )
                                 }
                             }
@@ -333,7 +452,7 @@ fun HabitDetailScreen(
             }
         }
 
-        // Bottom Sticky Action Button: "Edit Habit"
+        // Bottom Sticky Action Button: "Edit Habit" (Monochrome Black)
         Button(
             onClick = { onEditHabitClick(habit) },
             modifier = Modifier
@@ -342,15 +461,39 @@ fun HabitDetailScreen(
                 .height(52.dp)
                 .testTag("bottom_edit_habit_button"),
             shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = HabitGreenPrimary)
+            colors = ButtonDefaults.buttonColors(containerColor = MonoBlack)
         ) {
             Text(
                 text = "Edit Habit",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = Color.White
+                color = MonoWhite
             )
         }
+    }
+
+    if (showDeleteConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmDialog = false },
+            title = { Text("Delete Habit?", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to delete '${habit.title}'? This action cannot be undone.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteConfirmDialog = false
+                        onDeleteHabit(habit.id)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
+                ) {
+                    Text("Delete", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                    Text("Cancel", color = MonoBlack)
+                }
+            }
+        )
     }
 }
 
@@ -368,11 +511,11 @@ private fun SpecRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(imageVector = icon, contentDescription = null, tint = HabitTextSecondary, modifier = Modifier.size(16.dp))
+            Icon(imageVector = icon, contentDescription = null, tint = MonoGrayMedium, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(10.dp))
-            Text(text = label, fontSize = 13.sp, color = HabitTextPrimary)
+            Text(text = label, fontSize = 13.sp, color = MonoBlack)
         }
-        Text(text = value, fontSize = 13.sp, color = HabitTextSecondary, fontWeight = FontWeight.Medium)
+        Text(text = value, fontSize = 13.sp, color = MonoGrayMedium, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -391,14 +534,14 @@ private fun SpecClickableRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(imageVector = icon, contentDescription = null, tint = HabitTextSecondary, modifier = Modifier.size(16.dp))
+            Icon(imageVector = icon, contentDescription = null, tint = MonoGrayMedium, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(10.dp))
-            Text(text = label, fontSize = 13.sp, color = HabitTextPrimary)
+            Text(text = label, fontSize = 13.sp, color = MonoBlack)
         }
         Icon(
             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
             contentDescription = null,
-            tint = HabitTextSecondary,
+            tint = MonoGrayMedium,
             modifier = Modifier.size(16.dp)
         )
     }
@@ -411,17 +554,18 @@ private fun StreakStatCircle(value: String, label: String) {
             modifier = Modifier
                 .size(38.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFF3F6F4)),
+                .background(MonoSurfaceVariant)
+                .border(BorderStroke(1.dp, MonoBorder), CircleShape),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = value,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
-                color = HabitTextPrimary
+                color = MonoBlack
             )
         }
         Spacer(modifier = Modifier.height(4.dp))
-        Text(text = label, fontSize = 10.sp, color = HabitTextSecondary)
+        Text(text = label, fontSize = 10.sp, color = MonoGrayMedium)
     }
 }

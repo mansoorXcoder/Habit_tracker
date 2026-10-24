@@ -12,29 +12,29 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = HabitGreenPrimaryDark,
-    onPrimary = Color(0xFF003919),
-    primaryContainer = Color(0xFF163E23),
-    onPrimaryContainer = Color(0xFFA2F5B6),
-    secondary = HabitGreenLight,
-    onSecondary = Color.White,
+    primary = MonoWhite,
+    onPrimary = MonoBlack,
+    primaryContainer = MonoDarkGray,
+    onPrimaryContainer = MonoWhite,
+    secondary = MonoGrayLight,
+    onSecondary = MonoBlack,
     background = HabitBackgroundDark,
     onBackground = HabitTextPrimaryDark,
     surface = HabitSurfaceDark,
     onSurface = HabitTextPrimaryDark,
     surfaceVariant = HabitSurfaceVariantDark,
     onSurfaceVariant = HabitTextSecondaryDark,
-    outline = Color(0xFF3B4A3F),
-    outlineVariant = Color(0xFF2A362D)
+    outline = Color(0xFF3F3F46),
+    outlineVariant = Color(0xFF27272A)
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = HabitGreenPrimary,
-    onPrimary = Color.White,
-    primaryContainer = HabitGreenContainer,
-    onPrimaryContainer = HabitOnGreenContainer,
-    secondary = HabitGreenLight,
-    onSecondary = Color.White,
+    primary = MonoBlack,
+    onPrimary = MonoWhite,
+    primaryContainer = MonoSurfaceVariant,
+    onPrimaryContainer = MonoBlack,
+    secondary = MonoDarkGray,
+    onSecondary = MonoWhite,
     background = HabitBackgroundLight,
     onBackground = HabitTextPrimary,
     surface = HabitSurfaceLight,
@@ -48,7 +48,7 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun HabitFlowTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false,
+    dynamicColor: Boolean = false, // Keep false to enforce monochrome consistency
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

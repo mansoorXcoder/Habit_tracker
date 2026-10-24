@@ -17,25 +17,34 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.HabitLogEntity
-import com.example.ui.theme.HabitGreenPrimary
-import com.example.ui.theme.HabitOutlineVariant
-import com.example.ui.theme.HabitTextPrimary
-import com.example.ui.theme.HabitTextSecondary
+import com.example.ui.theme.MonoBlack
+import com.example.ui.theme.MonoBorder
+import com.example.ui.theme.MonoGrayLight
+import com.example.ui.theme.MonoGrayMedium
+import com.example.ui.theme.MonoSurfaceVariant
+import com.example.ui.theme.MonoWhite
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -44,24 +53,39 @@ import java.util.Locale
 @Composable
 fun MonthlyCalendarView(
     habitLogs: List<HabitLogEntity>,
-    onDateClick: (String) -> Unit = {},
+    selectedDate: String,
+    onDateClick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val completedDates = habitLogs.filter { it.completed }.map { it.dateString }.toSet()
-    val todayCal = Calendar.getInstance()
-    val todayDayOfMonth = todayCal.get(Calendar.DAY_OF_MONTH)
     val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-    val currentMonthStr = SimpleDateFormat("MMM yyyy", Locale.US).format(todayCal.time)
+    val monthYearFormat = SimpleDateFormat("MMMM yyyy", Locale.US)
+
+    // Calendar state for month navigation
+    var currentDisplayCal by remember {
+        val cal = Calendar.getInstance()
+        try {
+            cal.time = dateFormat.parse(selectedDate) ?: Date()
+        } catch (_: Exception) {
+            cal.time = Date()
+        }
+        cal.set(Calendar.DAY_OF_MONTH, 1)
+        mutableStateOf(cal)
+    }
+
+    val todayCal = Calendar.getInstance()
+    val todayDateStr = dateFormat.format(todayCal.time)
+
+    val completedDates = habitLogs.filter { it.completed }.map { it.dateString }.toSet()
 
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MonoWhite),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = BorderStroke(1.dp, HabitOutlineVariant)
+        border = BorderStroke(1.dp, MonoBorder)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Header
+            // Header with Month Navigation (< Month Year >)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -71,7 +95,7 @@ fun MonthlyCalendarView(
                     Icon(
                         imageVector = Icons.Default.CalendarToday,
                         contentDescription = null,
-                        tint = HabitGreenPrimary,
+                        tint = MonoBlack,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -79,30 +103,56 @@ fun MonthlyCalendarView(
                         text = "Completion History",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = HabitTextPrimary
+                        color = MonoBlack
                     )
                 }
 
                 Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color(0xFFF1F5F2))
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .background(MonoSurfaceVariant)
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
                 ) {
+                    IconButton(
+                        onClick = {
+                            val newCal = currentDisplayCal.clone() as Calendar
+                            newCal.add(Calendar.MONTH, -1)
+                            currentDisplayCal = newCal
+                        },
+                        modifier = Modifier.size(28.dp).testTag("cal_prev_month")
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                            contentDescription = "Previous Month",
+                            tint = MonoBlack,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
                     Text(
-                        text = currentMonthStr,
+                        text = monthYearFormat.format(currentDisplayCal.time),
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = HabitTextSecondary
+                        fontWeight = FontWeight.SemiBold,
+                        color = MonoBlack,
+                        modifier = Modifier.padding(horizontal = 6.dp)
                     )
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
-                        tint = HabitTextSecondary,
-                        modifier = Modifier.size(14.dp)
-                    )
+
+                    IconButton(
+                        onClick = {
+                            val newCal = currentDisplayCal.clone() as Calendar
+                            newCal.add(Calendar.MONTH, 1)
+                            currentDisplayCal = newCal
+                        },
+                        modifier = Modifier.size(28.dp).testTag("cal_next_month")
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = "Next Month",
+                            tint = MonoBlack,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
 
@@ -123,7 +173,7 @@ fun MonthlyCalendarView(
                             text = dayName,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
-                            color = HabitTextSecondary
+                            color = MonoGrayMedium
                         )
                     }
                 }
@@ -131,30 +181,28 @@ fun MonthlyCalendarView(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Calendar Days Grid
-            // Build 5-6 rows matching the current month layout
-            val cal = Calendar.getInstance()
+            // Days Grid
+            val cal = currentDisplayCal.clone() as Calendar
             cal.set(Calendar.DAY_OF_MONTH, 1)
             val firstDayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
             val daysFromMon = if (firstDayOfWeek == Calendar.SUNDAY) 6 else firstDayOfWeek - Calendar.MONDAY
-
-            // Start from Monday of the first row
             cal.add(Calendar.DAY_OF_YEAR, -daysFromMon)
 
-            val currentMonth = todayCal.get(Calendar.MONTH)
+            val displayMonth = currentDisplayCal.get(Calendar.MONTH)
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                for (week in 0 until 5) {
+                for (week in 0 until 6) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         for (day in 0 until 7) {
-                            val isCurrentMonth = cal.get(Calendar.MONTH) == currentMonth
+                            val isCurrentMonth = cal.get(Calendar.MONTH) == displayMonth
                             val dayNum = cal.get(Calendar.DAY_OF_MONTH)
                             val dateStr = dateFormat.format(cal.time)
                             val isCompleted = completedDates.contains(dateStr)
-                            val isToday = isCurrentMonth && dayNum == todayDayOfMonth
+                            val isSelected = dateStr == selectedDate
+                            val isToday = dateStr == todayDateStr
 
                             val cellModifier = Modifier
                                 .size(36.dp)
@@ -163,8 +211,12 @@ fun MonthlyCalendarView(
 
                             Box(
                                 modifier = when {
-                                    isCompleted -> cellModifier.background(HabitGreenPrimary, CircleShape)
-                                    isToday -> cellModifier.border(1.5.dp, HabitGreenPrimary, CircleShape)
+                                    isCompleted && isSelected -> cellModifier
+                                        .background(MonoBlack, CircleShape)
+                                        .border(2.dp, MonoGrayMedium, CircleShape)
+                                    isCompleted -> cellModifier.background(MonoBlack, CircleShape)
+                                    isSelected -> cellModifier.border(2.dp, MonoBlack, CircleShape)
+                                    isToday -> cellModifier.background(MonoSurfaceVariant, CircleShape)
                                     else -> cellModifier
                                 },
                                 contentAlignment = Alignment.Center
@@ -172,12 +224,13 @@ fun MonthlyCalendarView(
                                 Text(
                                     text = dayNum.toString(),
                                     fontSize = 12.sp,
-                                    fontWeight = if (isCompleted || isToday) FontWeight.Bold else FontWeight.Normal,
+                                    fontWeight = if (isCompleted || isSelected || isToday) FontWeight.Bold else FontWeight.Normal,
                                     color = when {
                                         isCompleted -> Color.White
-                                        isToday -> HabitGreenPrimary
-                                        !isCurrentMonth -> Color(0xFFBAC5BD)
-                                        else -> HabitTextPrimary
+                                        isSelected -> MonoBlack
+                                        isToday -> MonoBlack
+                                        !isCurrentMonth -> MonoGrayLight
+                                        else -> MonoBlack
                                     }
                                 )
                             }

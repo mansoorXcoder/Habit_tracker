@@ -1,8 +1,8 @@
 package com.example.ui.screens
 
-import android.content.Context
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,18 +19,18 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.NotificationsActive
-import androidx.compose.material.icons.filled.RestartAlt
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -42,33 +42,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.receiver.NotificationHelper
-import com.example.ui.theme.HabitGreenContainer
-import com.example.ui.theme.HabitGreenPrimary
-import com.example.ui.theme.HabitOutlineVariant
-import com.example.ui.theme.HabitTextPrimary
-import com.example.ui.theme.HabitTextSecondary
+import com.example.ui.theme.MonoBlack
+import com.example.ui.theme.MonoBorder
+import com.example.ui.theme.MonoGrayLight
+import com.example.ui.theme.MonoGrayMedium
+import com.example.ui.theme.MonoSurfaceVariant
+import com.example.ui.theme.MonoWhite
 
 @Composable
 fun ProfileScreen(
     userName: String,
     onUpdateUserName: (String) -> Unit,
-    onResetData: () -> Unit,
+    onResetAllData: () -> Unit,
     currentStreak: Int,
     completionRate: Int,
     totalHabits: Int,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     var showEditNameDialog by remember { mutableStateOf(false) }
     var tempName by remember { mutableStateOf(userName) }
     var showResetConfirmDialog by remember { mutableStateOf(false) }
-    var notificationSentMessage by remember { mutableStateOf<String?>(null) }
 
     LazyColumn(
         modifier = modifier
@@ -82,7 +79,7 @@ fun ProfileScreen(
                 text = "Profile",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = HabitTextPrimary
+                color = MonoBlack
             )
         }
 
@@ -91,8 +88,8 @@ fun ProfileScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(22.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, HabitOutlineVariant),
+                colors = CardDefaults.cardColors(containerColor = MonoWhite),
+                border = BorderStroke(1.dp, MonoBorder),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
@@ -103,12 +100,17 @@ fun ProfileScreen(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(64.dp)
+                            .size(60.dp)
                             .clip(CircleShape)
-                            .background(HabitGreenContainer),
+                            .background(MonoBlack),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "🌱", fontSize = 32.sp)
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            tint = MonoWhite,
+                            modifier = Modifier.size(32.dp)
+                        )
                     }
 
                     Spacer(modifier = Modifier.width(16.dp))
@@ -119,13 +121,13 @@ fun ProfileScreen(
                                 text = userName,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = HabitTextPrimary
+                                color = MonoBlack
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(
                                 imageVector = Icons.Default.Edit,
                                 contentDescription = "Edit Name",
-                                tint = HabitTextSecondary,
+                                tint = MonoGrayMedium,
                                 modifier = Modifier
                                     .size(16.dp)
                                     .clickable {
@@ -137,14 +139,14 @@ fun ProfileScreen(
                         Text(
                             text = "Daily Habit Builder",
                             fontSize = 12.sp,
-                            color = HabitTextSecondary
+                            color = MonoGrayMedium
                         )
                     }
                 }
             }
         }
 
-        // Highlights Card
+        // Highlights Card (Dynamic stats)
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -156,104 +158,66 @@ fun ProfileScreen(
             }
         }
 
-        // Actions & Settings
+        // Reset Card (Single, clearly labeled Reset All Data option)
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, HabitOutlineVariant),
+                colors = CardDefaults.cardColors(containerColor = MonoWhite),
+                border = BorderStroke(1.dp, MonoBorder),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(18.dp)) {
                     Text(
-                        text = "Settings & Notifications",
+                        text = "Data Management",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = HabitTextPrimary
+                        color = MonoBlack
                     )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Test notification button
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFF7FAF7))
-                            .clickable {
-                                NotificationHelper.createNotificationChannel(context)
-                                notificationSentMessage = "Test notification scheduled in background!"
-                            }
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.NotificationsActive,
-                                contentDescription = null,
-                                tint = HabitGreenPrimary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text(
-                                    text = "Send Test Reminder",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = HabitTextPrimary
-                                )
-                                Text(
-                                    text = "Verify notification channel and alert",
-                                    fontSize = 11.sp,
-                                    color = HabitTextSecondary
-                                )
-                            }
-                        }
-                    }
-
-                    if (notificationSentMessage != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = notificationSentMessage!!,
-                            fontSize = 11.sp,
-                            color = HabitGreenPrimary,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Reset to sample data
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFF7FAF7))
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(MonoSurfaceVariant)
+                            .border(BorderStroke(1.dp, MonoBorder), RoundedCornerShape(14.dp))
                             .clickable { showResetConfirmDialog = true }
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.RestartAlt,
-                            contentDescription = null,
-                            tint = Color(0xFFDC2626),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "Reset to Prototype Data",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = HabitTextPrimary
-                            )
-                            Text(
-                                text = "Reloads Mansoor's habits, heatmap, and 7-day streak",
-                                fontSize = 11.sp,
-                                color = HabitTextSecondary
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFEE2E2)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.DeleteForever,
+                                    contentDescription = null,
+                                    tint = Color(0xFFDC2626),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Reset All Data",
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFDC2626)
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "Clear all habits, streaks, and history to a clean slate",
+                                    fontSize = 11.sp,
+                                    color = MonoGrayMedium
+                                )
+                            }
                         }
                     }
                 }
@@ -265,8 +229,8 @@ fun ProfileScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, HabitOutlineVariant),
+                colors = CardDefaults.cardColors(containerColor = MonoWhite),
+                border = BorderStroke(1.dp, MonoBorder),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -274,7 +238,7 @@ fun ProfileScreen(
                         Icon(
                             imageVector = Icons.Default.Info,
                             contentDescription = null,
-                            tint = HabitGreenPrimary,
+                            tint = MonoBlack,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -282,14 +246,14 @@ fun ProfileScreen(
                             text = "HabitFlow",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = HabitTextPrimary
+                            color = MonoBlack
                         )
                     }
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "Small Habits · Big Changes\nYour daily habits, your better tomorrow.",
                         fontSize = 12.sp,
-                        color = HabitTextSecondary,
+                        color = MonoGrayMedium,
                         lineHeight = 18.sp
                     )
                 }
@@ -301,16 +265,23 @@ fun ProfileScreen(
         }
     }
 
+    // Edit Name Dialog
     if (showEditNameDialog) {
         AlertDialog(
             onDismissRequest = { showEditNameDialog = false },
-            title = { Text("Edit Display Name") },
+            title = { Text("Edit Display Name", fontWeight = FontWeight.Bold, color = MonoBlack) },
             text = {
                 OutlinedTextField(
                     value = tempName,
                     onValueChange = { tempName = it },
                     singleLine = true,
-                    placeholder = { Text("Enter your name") }
+                    placeholder = { Text("Enter your name") },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MonoBlack,
+                        unfocusedBorderColor = MonoBorder,
+                        focusedTextColor = MonoBlack,
+                        unfocusedTextColor = MonoBlack
+                    )
                 )
             },
             confirmButton = {
@@ -321,38 +292,45 @@ fun ProfileScreen(
                         }
                         showEditNameDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = HabitGreenPrimary)
+                    colors = ButtonDefaults.buttonColors(containerColor = MonoBlack)
                 ) {
-                    Text("Save")
+                    Text("Save", color = MonoWhite)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showEditNameDialog = false }) {
-                    Text("Cancel")
+                    Text("Cancel", color = MonoBlack)
                 }
             }
         )
     }
 
+    // Reset All Data Confirmation Dialog
     if (showResetConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showResetConfirmDialog = false },
-            title = { Text("Reset to Initial State?") },
-            text = { Text("This will restore the 5 prototype habits and full activity history from your design.") },
+            title = { Text("Reset All Data?", fontWeight = FontWeight.Bold, color = Color(0xFFDC2626)) },
+            text = {
+                Text(
+                    "This action will permanently delete all created habits, completion history, streaks, and custom categories. The app will return to a clean blank slate with default categories.\n\nThis cannot be undone.",
+                    fontSize = 13.sp,
+                    color = MonoBlack
+                )
+            },
             confirmButton = {
                 Button(
                     onClick = {
-                        onResetData()
+                        onResetAllData()
                         showResetConfirmDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
                 ) {
-                    Text("Reset")
+                    Text("Reset Everything", color = Color.White)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showResetConfirmDialog = false }) {
-                    Text("Cancel")
+                    Text("Cancel", color = MonoBlack)
                 }
             }
         )
@@ -364,8 +342,8 @@ private fun StatCard(value: String, label: String, modifier: Modifier = Modifier
     Card(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, HabitOutlineVariant),
+        colors = CardDefaults.cardColors(containerColor = MonoWhite),
+        border = BorderStroke(1.dp, MonoBorder),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
@@ -378,13 +356,13 @@ private fun StatCard(value: String, label: String, modifier: Modifier = Modifier
                 text = value,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = HabitGreenPrimary
+                color = MonoBlack
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = label,
                 fontSize = 10.sp,
-                color = HabitTextSecondary
+                color = MonoGrayMedium
             )
         }
     }

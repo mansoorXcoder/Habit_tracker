@@ -4,12 +4,13 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.example.data.model.CategoryEntity
 import com.example.data.model.HabitEntity
 import com.example.data.model.HabitLogEntity
 
 @Database(
-    entities = [HabitEntity::class, HabitLogEntity::class],
-    version = 1,
+    entities = [HabitEntity::class, HabitLogEntity::class, CategoryEntity::class],
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

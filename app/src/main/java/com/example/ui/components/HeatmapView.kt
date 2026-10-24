@@ -1,5 +1,6 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -29,14 +30,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.HeatmapCell
-import com.example.ui.theme.HabitGreenPrimary
-import com.example.ui.theme.HabitOutlineVariant
-import com.example.ui.theme.HabitTextPrimary
-import com.example.ui.theme.HabitTextSecondary
 import com.example.ui.theme.Heatmap0
 import com.example.ui.theme.Heatmap1
 import com.example.ui.theme.Heatmap2
 import com.example.ui.theme.Heatmap3
+import com.example.ui.theme.MonoBlack
+import com.example.ui.theme.MonoBorder
+import com.example.ui.theme.MonoGrayMedium
+import com.example.ui.theme.MonoWhite
 
 @Composable
 fun HeatmapView(
@@ -46,9 +47,9 @@ fun HeatmapView(
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MonoWhite),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border = androidx.compose.foundation.BorderStroke(1.dp, HabitOutlineVariant)
+        border = BorderStroke(1.dp, MonoBorder)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Header with title and Low -> High legend
@@ -61,7 +62,7 @@ fun HeatmapView(
                     Icon(
                         imageVector = Icons.Default.LocalFireDepartment,
                         contentDescription = null,
-                        tint = HabitGreenPrimary,
+                        tint = MonoBlack,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -69,11 +70,11 @@ fun HeatmapView(
                         text = "Daily Activity Heatmap",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = HabitTextPrimary
+                        color = MonoBlack
                     )
                 }
 
-                // Legend
+                // Monochrome Legend
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(3.dp)
@@ -81,7 +82,7 @@ fun HeatmapView(
                     Text(
                         text = "Low",
                         fontSize = 10.sp,
-                        color = HabitTextSecondary
+                        color = MonoGrayMedium
                     )
                     Spacer(modifier = Modifier.width(2.dp))
                     Box(modifier = Modifier.size(8.dp).background(Heatmap0, RoundedCornerShape(2.dp)))
@@ -92,7 +93,7 @@ fun HeatmapView(
                     Text(
                         text = "High",
                         fontSize = 10.sp,
-                        color = HabitTextSecondary
+                        color = MonoGrayMedium
                     )
                 }
             }
@@ -118,7 +119,7 @@ fun HeatmapView(
                             Text(
                                 text = label,
                                 fontSize = 9.sp,
-                                color = HabitTextSecondary,
+                                color = MonoGrayMedium,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -136,12 +137,12 @@ fun HeatmapView(
                         modifier = Modifier.padding(bottom = 6.dp),
                         horizontalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
-                        val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct")
+                        val months = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
                         months.forEach { month ->
                             Text(
                                 text = month,
                                 fontSize = 10.sp,
-                                color = HabitTextSecondary,
+                                color = MonoGrayMedium,
                                 fontWeight = FontWeight.Medium
                             )
                         }

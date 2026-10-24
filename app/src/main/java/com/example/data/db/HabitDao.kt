@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import com.example.data.model.CategoryEntity
 import com.example.data.model.HabitEntity
 import com.example.data.model.HabitLogEntity
 import kotlinx.coroutines.flow.Flow
@@ -16,6 +17,9 @@ interface HabitDao {
     // Habits
     @Query("SELECT * FROM habits ORDER BY orderIndex ASC, id ASC")
     fun getAllHabits(): Flow<List<HabitEntity>>
+
+    @Query("SELECT * FROM habits ORDER BY orderIndex ASC, id ASC")
+    suspend fun getAllHabitsList(): List<HabitEntity>
 
     @Query("SELECT * FROM habits WHERE id = :id LIMIT 1")
     fun getHabitById(id: Long): Flow<HabitEntity?>
@@ -77,4 +81,26 @@ interface HabitDao {
 
     @Query("DELETE FROM habits")
     suspend fun clearAllHabits()
+
+    // Categories
+    @Query("SELECT * FROM categories ORDER BY isDefault DESC, name ASC")
+    fun getAllCategories(): Flow<List<CategoryEntity>>
+
+    @Query("SELECT * FROM categories ORDER BY isDefault DESC, name ASC")
+    suspend fun getAllCategoriesSync(): List<CategoryEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCategory(category: CategoryEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCategories(categories: List<CategoryEntity>): List<Long>
+
+    @Query("DELETE FROM categories WHERE id = :id AND isDefault = 0")
+    suspend fun deleteCategoryById(id: Long)
+
+    @Query("DELETE FROM categories WHERE isDefault = 0")
+    suspend fun clearCustomCategories()
+
+    @Query("DELETE FROM categories")
+    suspend fun clearAllCategories()
 }

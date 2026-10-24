@@ -2,7 +2,7 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,10 +19,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.PieChart
-import androidx.compose.material.icons.filled.Sell
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -40,18 +38,12 @@ import com.example.data.model.ProgressStats
 import com.example.ui.components.DonutRateChart
 import com.example.ui.components.HeatmapView
 import com.example.ui.components.WeeklyBarChartView
-import com.example.ui.theme.CatHealthBg
-import com.example.ui.theme.CatHealthText
-import com.example.ui.theme.CatLearningBg
-import com.example.ui.theme.CatLearningText
-import com.example.ui.theme.CatLifestyleBg
-import com.example.ui.theme.CatLifestyleText
-import com.example.ui.theme.CatProductivityBg
-import com.example.ui.theme.CatProductivityText
-import com.example.ui.theme.HabitGreenPrimary
-import com.example.ui.theme.HabitOutlineVariant
-import com.example.ui.theme.HabitTextPrimary
-import com.example.ui.theme.HabitTextSecondary
+import com.example.ui.theme.MonoBlack
+import com.example.ui.theme.MonoBorder
+import com.example.ui.theme.MonoGrayLight
+import com.example.ui.theme.MonoGrayMedium
+import com.example.ui.theme.MonoSurfaceVariant
+import com.example.ui.theme.MonoWhite
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -59,10 +51,9 @@ import java.util.Locale
 @Composable
 fun ProgressScreen(
     progressStats: ProgressStats,
-    onCategoryClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val monthYearDisplay = SimpleDateFormat("MMM yyyy", Locale.US).format(Date())
+    val monthYearDisplay = SimpleDateFormat("MMMM yyyy", Locale.US).format(Date())
 
     LazyColumn(
         modifier = modifier
@@ -73,7 +64,7 @@ fun ProgressScreen(
         item {
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Progress Header with Month Selector
+            // Progress Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -83,20 +74,21 @@ fun ProgressScreen(
                     text = "Progress",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = HabitTextPrimary
+                    color = MonoBlack
                 )
 
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(18.dp))
-                        .background(Color.White)
+                        .background(MonoWhite)
+                        .border(BorderStroke(1.dp, MonoBorder), RoundedCornerShape(18.dp))
                         .padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
                         imageVector = Icons.Default.CalendarToday,
                         contentDescription = null,
-                        tint = HabitTextSecondary,
+                        tint = MonoGrayMedium,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -104,20 +96,13 @@ fun ProgressScreen(
                         text = monthYearDisplay,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
-                        color = HabitTextPrimary
-                    )
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = null,
-                        tint = HabitTextSecondary,
-                        modifier = Modifier.size(16.dp)
+                        color = MonoBlack
                     )
                 }
             }
         }
 
-        // Daily Activity Heatmap
+        // Daily Activity Heatmap (Monochrome)
         item {
             HeatmapView(
                 heatmapGrid = progressStats.heatmapGrid,
@@ -125,7 +110,7 @@ fun ProgressScreen(
             )
         }
 
-        // Weekly Progress Bar Chart
+        // Weekly Progress Bar Chart (Monochrome)
         item {
             WeeklyBarChartView(
                 weeklyData = progressStats.weeklyProgress,
@@ -139,14 +124,14 @@ fun ProgressScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // Completion Rate Card
+                // Completion Rate Card (Dynamic)
                 Card(
                     modifier = Modifier
                         .weight(1f)
                         .testTag("completion_rate_card"),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    border = BorderStroke(1.dp, HabitOutlineVariant),
+                    colors = CardDefaults.cardColors(containerColor = MonoWhite),
+                    border = BorderStroke(1.dp, MonoBorder),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
@@ -154,7 +139,7 @@ fun ProgressScreen(
                             Icon(
                                 imageVector = Icons.Default.PieChart,
                                 contentDescription = null,
-                                tint = HabitGreenPrimary,
+                                tint = MonoBlack,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -162,7 +147,7 @@ fun ProgressScreen(
                                 text = "Completion Rate",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = HabitTextPrimary
+                                color = MonoBlack
                             )
                         }
 
@@ -181,39 +166,39 @@ fun ProgressScreen(
 
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(modifier = Modifier.size(6.dp).background(HabitGreenPrimary, CircleShape))
+                                    Box(modifier = Modifier.size(6.dp).background(MonoBlack, CircleShape))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(text = "Completed", fontSize = 9.sp, color = HabitTextSecondary)
+                                    Text(text = "Done", fontSize = 9.sp, color = MonoGrayMedium)
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(text = "${progressStats.totalCompleted}", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = HabitTextPrimary)
+                                    Text(text = "${progressStats.totalCompleted}", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MonoBlack)
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(modifier = Modifier.size(6.dp).background(Color(0xFFCBD5E1), CircleShape))
+                                    Box(modifier = Modifier.size(6.dp).background(MonoGrayLight, CircleShape))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(text = "Missed", fontSize = 9.sp, color = HabitTextSecondary)
+                                    Text(text = "Missed", fontSize = 9.sp, color = MonoGrayMedium)
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(text = "${progressStats.totalMissed}", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = HabitTextPrimary)
+                                    Text(text = "${progressStats.totalMissed}", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MonoBlack)
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(modifier = Modifier.size(6.dp).background(Color(0xFF94A3B8), CircleShape))
+                                    Box(modifier = Modifier.size(6.dp).background(MonoBorder, CircleShape))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(text = "Total", fontSize = 9.sp, color = HabitTextSecondary)
+                                    Text(text = "Total", fontSize = 9.sp, color = MonoGrayMedium)
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(text = "${progressStats.totalScheduled}", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = HabitTextPrimary)
+                                    Text(text = "${progressStats.totalScheduled}", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MonoBlack)
                                 }
                             }
                         }
                     }
                 }
 
-                // Current Streak Card
+                // Current Streak Card (Dynamic)
                 Card(
                     modifier = Modifier
                         .weight(1f)
                         .testTag("current_streak_card"),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    border = BorderStroke(1.dp, HabitOutlineVariant),
+                    colors = CardDefaults.cardColors(containerColor = MonoWhite),
+                    border = BorderStroke(1.dp, MonoBorder),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
                     Column(
@@ -226,7 +211,7 @@ fun ProgressScreen(
                             Icon(
                                 imageVector = Icons.Default.LocalFireDepartment,
                                 contentDescription = null,
-                                tint = HabitGreenPrimary,
+                                tint = MonoBlack,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -234,7 +219,7 @@ fun ProgressScreen(
                                 text = "Current Streak",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.SemiBold,
-                                color = HabitTextPrimary
+                                color = MonoBlack
                             )
                         }
 
@@ -248,17 +233,17 @@ fun ProgressScreen(
                                 text = "${progressStats.currentStreakDays}",
                                 fontSize = 28.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = HabitTextPrimary
+                                color = MonoBlack
                             )
                             Text(
-                                text = "days",
+                                text = if (progressStats.currentStreakDays == 1) "day" else "days",
                                 fontSize = 11.sp,
-                                color = HabitTextSecondary
+                                color = MonoGrayMedium
                             )
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // Streak Progress Dots (7 dots)
+                            // 7 Streak Progress Dots
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 for (i in 1..7) {
                                     val isFilled = i <= progressStats.currentStreakDays
@@ -266,7 +251,7 @@ fun ProgressScreen(
                                         modifier = Modifier
                                             .size(7.dp)
                                             .background(
-                                                if (isFilled) HabitGreenPrimary else Color(0xFFE2EBE4),
+                                                if (isFilled) MonoBlack else MonoBorder,
                                                 CircleShape
                                             )
                                     )
@@ -276,55 +261,12 @@ fun ProgressScreen(
                             Spacer(modifier = Modifier.height(6.dp))
 
                             Text(
-                                text = "Keep it up!",
+                                text = if (progressStats.currentStreakDays > 0) "Keep it up!" else "Start a new streak!",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = HabitGreenPrimary
+                                color = MonoBlack
                             )
                         }
-                    }
-                }
-            }
-        }
-
-        // Habit Categories Card
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("habit_categories_card"),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, HabitOutlineVariant),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Sell,
-                            contentDescription = null,
-                            tint = HabitGreenPrimary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Habit Categories",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = HabitTextPrimary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        CategoryChip("Health", CatHealthBg, CatHealthText) { onCategoryClick("Health") }
-                        CategoryChip("Productivity", CatProductivityBg, CatProductivityText) { onCategoryClick("Productivity") }
-                        CategoryChip("Learning", CatLearningBg, CatLearningText) { onCategoryClick("Learning") }
-                        CategoryChip("Lifestyle", CatLifestyleBg, CatLifestyleText) { onCategoryClick("Lifestyle") }
                     }
                 }
             }
@@ -333,29 +275,5 @@ fun ProgressScreen(
         item {
             Spacer(modifier = Modifier.height(40.dp))
         }
-    }
-}
-
-@Composable
-private fun CategoryChip(
-    title: String,
-    bg: Color,
-    textColor: Color,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(bg)
-            .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 6.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = title,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = textColor
-        )
     }
 }

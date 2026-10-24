@@ -2,6 +2,7 @@ package com.example.data.repository
 
 import com.example.data.db.HabitDao
 import com.example.data.db.SampleDataPreloader
+import com.example.data.model.CategoryEntity
 import com.example.data.model.CategoryStat
 import com.example.data.model.DayCompletion
 import com.example.data.model.HabitEntity
@@ -36,26 +37,27 @@ class HabitRepository(
     fun getTodayDateString(): String = dateFormat.format(Date())
 
     val allHabits: Flow<List<HabitEntity>> = habitDao.getAllHabits()
+    val allCategories: Flow<List<CategoryEntity>> = habitDao.getAllCategories()
 
     fun getHabitById(id: Long): Flow<HabitEntity?> = habitDao.getHabitById(id)
 
     fun getLogsForHabit(habitId: Long): Flow<List<HabitLogEntity>> = habitDao.getLogsForHabit(habitId)
 
-    // Combines habits with today's completion logs
-    fun getTodayHabits(dateString: String = getTodayDateString()): Flow<List<HabitWithLog>> {
+    // Combines habits with logs for any given date (default today)
+    fun getHabitsForDate(dateString: String = getTodayDateString()): Flow<List<HabitWithLog>> {
         return combine(
             habitDao.getAllHabits(),
             habitDao.getLogsForDate(dateString),
             habitDao.getAllLogs()
-        ) { habits, todayLogs, allLogs ->
-            val logMap = todayLogs.associateBy { it.habitId }
+        ) { habits, dateLogs, allLogs ->
+            val logMap = dateLogs.associateBy { it.habitId }
             val logsByHabit = allLogs.groupBy { it.habitId }
 
             habits.map { habit ->
-                val todayLog = logMap[habit.id]
-                val isDone = todayLog?.completed == true
+                val dateLog = logMap[habit.id]
+                val isDone = dateLog?.completed == true
                 val habitLogs = logsByHabit[habit.id] ?: emptyList()
-                val currentStreak = calculateStreak(habitLogs, dateString)
+                val currentStreak = calculateSingleHabitStreak(habitLogs, dateString)
 
                 HabitWithLog(
                     habit = habit,
@@ -67,28 +69,39 @@ class HabitRepository(
         }
     }
 
+    fun getTodayHabits(): Flow<List<HabitWithLog>> = getHabitsForDate(getTodayDateString())
+
     fun getProgressStats(referenceDate: Date = Date()): Flow<ProgressStats> {
         return combine(
             habitDao.getAllHabits(),
             habitDao.getAllLogs()
         ) { habits, allLogs ->
-            calculateProgressStats(habits, allLogs, referenceDate)
+            calculateDynamicProgressStats(habits, allLogs, referenceDate)
         }
     }
 
-    private fun calculateStreak(logs: List<HabitLogEntity>, todayStr: String): Int {
+    private fun calculateSingleHabitStreak(logs: List<HabitLogEntity>, targetDateStr: String): Int {
         val completedDates = logs.filter { it.completed }.map { it.dateString }.toSet()
         if (completedDates.isEmpty()) return 0
 
         var streak = 0
         val cal = Calendar.getInstance()
-        cal.time = dateFormat.parse(todayStr) ?: Date()
+        cal.time = try { dateFormat.parse(targetDateStr) ?: Date() } catch (_: Exception) { Date() }
 
-        // Check today first
-        if (completedDates.contains(dateFormat.format(cal.time))) {
+        val todayFormatted = dateFormat.format(cal.time)
+        // If target date is completed, count it
+        if (completedDates.contains(todayFormatted)) {
+            streak++
+        } else {
+            // Check if yesterday was completed
+            cal.add(Calendar.DAY_OF_YEAR, -1)
+            if (!completedDates.contains(dateFormat.format(cal.time))) {
+                return 0
+            }
             streak++
         }
-        // Count backwards
+
+        // Count backward consecutively
         while (true) {
             cal.add(Calendar.DAY_OF_YEAR, -1)
             val checkDate = dateFormat.format(cal.time)
@@ -101,20 +114,34 @@ class HabitRepository(
         return streak
     }
 
-    private fun calculateProgressStats(
+    private fun calculateDynamicProgressStats(
         habits: List<HabitEntity>,
         allLogs: List<HabitLogEntity>,
         referenceDate: Date
     ): ProgressStats {
-        val habitCount = habits.size.coerceAtLeast(1)
+        val habitCount = habits.size
         val logsByDate = allLogs.groupBy { it.dateString }
+
+        // If no habits exist, return completely empty state
+        if (habitCount == 0) {
+            return ProgressStats(
+                completionRatePercent = 0,
+                totalCompleted = 0,
+                totalMissed = 0,
+                totalScheduled = 0,
+                currentStreakDays = 0,
+                bestStreakDays = 0,
+                weeklyProgress = emptyWeeklyList(referenceDate),
+                heatmapGrid = emptyHeatmapGrid(referenceDate),
+                categoryStats = emptyList()
+            )
+        }
 
         // 1. Weekly Progress (last 7 days: Mon -> Sun)
         val weeklyList = mutableListOf<DayCompletion>()
         val cal = Calendar.getInstance()
         cal.time = referenceDate
 
-        // Set to start of current week (Monday)
         val currentDayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
         val daysFromMonday = if (currentDayOfWeek == Calendar.SUNDAY) 6 else currentDayOfWeek - Calendar.MONDAY
         cal.add(Calendar.DAY_OF_YEAR, -daysFromMonday)
@@ -134,17 +161,16 @@ class HabitRepository(
             cal.add(Calendar.DAY_OF_YEAR, 1)
         }
 
-        // 2. Heatmap Grid (7 rows Mon-Sun x ~35-40 weeks)
+        // 2. Heatmap Grid (7 rows Mon-Sun x ~30 weeks back)
         val heatmapGrid = mutableListOf<MutableList<HeatmapCell>>()
         for (r in 0..6) {
             heatmapGrid.add(mutableListOf())
         }
 
-        val totalDays = 210 // ~30 weeks back
+        val totalDays = 210
         val heatCal = Calendar.getInstance()
         heatCal.time = referenceDate
         heatCal.add(Calendar.DAY_OF_YEAR, -totalDays)
-        // Align to Monday
         val heatDayOfWeek = heatCal.get(Calendar.DAY_OF_WEEK)
         val heatDiff = if (heatDayOfWeek == Calendar.SUNDAY) 6 else heatDayOfWeek - Calendar.MONDAY
         heatCal.add(Calendar.DAY_OF_YEAR, -heatDiff)
@@ -159,7 +185,7 @@ class HabitRepository(
             val level = when {
                 completed == 0 -> 0
                 ratio <= 0.35f -> 1
-                ratio <= 0.75f -> 2
+                ratio <= 0.70f -> 2
                 else -> 3
             }
 
@@ -174,41 +200,90 @@ class HabitRepository(
             heatCal.add(Calendar.DAY_OF_YEAR, 1)
         }
 
-        // 3. Overall completion rate (recent 30 days)
+        // 3. Dynamic Completion Rate (over past 30 days of actual tracking)
         var totalScheduled = 0
-        var totalCompleted = 0
+        var totalCompletedInPeriod = 0
         val monthCal = Calendar.getInstance()
         monthCal.time = referenceDate
         for (d in 0..29) {
             val dStr = dateFormat.format(monthCal.time)
             val done = logsByDate[dStr]?.count { it.completed } ?: 0
-            totalCompleted += done
+            totalCompletedInPeriod += done
             totalScheduled += habitCount
             monthCal.add(Calendar.DAY_OF_YEAR, -1)
         }
-        val totalMissed = (totalScheduled - totalCompleted).coerceAtLeast(0)
+        val totalMissed = (totalScheduled - totalCompletedInPeriod).coerceAtLeast(0)
         val completionRate = if (totalScheduled > 0) {
-            ((totalCompleted.toFloat() / totalScheduled.toFloat()) * 100).toInt()
-        } else 80
+            ((totalCompletedInPeriod.toFloat() / totalScheduled.toFloat()) * 100).toInt().coerceIn(0, 100)
+        } else {
+            0
+        }
 
-        // 4. Current Streak (overall daily habit completion)
+        // 4. Dynamic Overall Streak (Current & Best)
         val todayStr = dateFormat.format(referenceDate)
         var currentStreak = 0
         val streakCal = Calendar.getInstance()
         streakCal.time = referenceDate
 
-        while (true) {
-            val dStr = dateFormat.format(streakCal.time)
-            val doneCount = logsByDate[dStr]?.count { it.completed } ?: 0
-            // If at least 3 habits or >50% completed on that day, count as streak
-            if (doneCount >= 3 || (dStr == todayStr && doneCount > 0)) {
+        val todayDone = logsByDate[todayStr]?.count { it.completed } ?: 0
+        if (todayDone > 0) {
+            currentStreak++
+            streakCal.add(Calendar.DAY_OF_YEAR, -1)
+        } else {
+            // Check yesterday
+            streakCal.add(Calendar.DAY_OF_YEAR, -1)
+            val yesterdayDone = logsByDate[dateFormat.format(streakCal.time)]?.count { it.completed } ?: 0
+            if (yesterdayDone == 0) {
+                currentStreak = 0
+            } else {
                 currentStreak++
                 streakCal.add(Calendar.DAY_OF_YEAR, -1)
-            } else {
-                break
             }
         }
-        val streakDisplay = if (currentStreak > 0) currentStreak else 7
+
+        if (currentStreak > 0) {
+            while (true) {
+                val dStr = dateFormat.format(streakCal.time)
+                val doneCount = logsByDate[dStr]?.count { it.completed } ?: 0
+                if (doneCount > 0) {
+                    currentStreak++
+                    streakCal.add(Calendar.DAY_OF_YEAR, -1)
+                } else {
+                    break
+                }
+            }
+        }
+
+        // Calculate Best Streak across all dates
+        val activeDates = logsByDate.filter { it.value.any { log -> log.completed } }.keys.sorted()
+        var bestStreak = 0
+        var tempStreak = 0
+        var previousCal: Calendar? = null
+
+        for (dateStr in activeDates) {
+            val c = Calendar.getInstance()
+            try {
+                c.time = dateFormat.parse(dateStr) ?: continue
+            } catch (_: Exception) {
+                continue
+            }
+
+            if (previousCal == null) {
+                tempStreak = 1
+            } else {
+                val diffDays = ((c.timeInMillis - previousCal.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
+                if (diffDays == 1) {
+                    tempStreak++
+                } else if (diffDays > 1) {
+                    tempStreak = 1
+                }
+            }
+            if (tempStreak > bestStreak) {
+                bestStreak = tempStreak
+            }
+            previousCal = c
+        }
+        bestStreak = maxOf(bestStreak, currentStreak)
 
         // 5. Category breakdown
         val categoryMap = habits.groupBy { it.category }
@@ -223,16 +298,46 @@ class HabitRepository(
         }
 
         return ProgressStats(
-            completionRatePercent = completionRate.coerceIn(0, 100),
-            totalCompleted = totalCompleted,
+            completionRatePercent = completionRate,
+            totalCompleted = totalCompletedInPeriod,
             totalMissed = totalMissed,
             totalScheduled = totalScheduled,
-            currentStreakDays = streakDisplay,
-            bestStreakDays = maxOf(12, streakDisplay),
+            currentStreakDays = currentStreak,
+            bestStreakDays = bestStreak,
             weeklyProgress = weeklyList,
             heatmapGrid = heatmapGrid,
             categoryStats = categoryStats
         )
+    }
+
+    private fun emptyWeeklyList(referenceDate: Date): List<DayCompletion> {
+        val list = mutableListOf<DayCompletion>()
+        val cal = Calendar.getInstance()
+        cal.time = referenceDate
+        val currentDay = cal.get(Calendar.DAY_OF_WEEK)
+        val diff = if (currentDay == Calendar.SUNDAY) 6 else currentDay - Calendar.MONDAY
+        cal.add(Calendar.DAY_OF_YEAR, -diff)
+        for (i in 0..6) {
+            list.add(DayCompletion(dayOfWeekFormat.format(cal.time), dateFormat.format(cal.time), 0, 0))
+            cal.add(Calendar.DAY_OF_YEAR, 1)
+        }
+        return list
+    }
+
+    private fun emptyHeatmapGrid(referenceDate: Date): List<List<HeatmapCell>> {
+        val grid = mutableListOf<MutableList<HeatmapCell>>()
+        for (r in 0..6) grid.add(mutableListOf())
+        val cal = Calendar.getInstance()
+        cal.time = referenceDate
+        cal.add(Calendar.DAY_OF_YEAR, -210)
+        while (cal.time.before(referenceDate) || dateFormat.format(cal.time) == dateFormat.format(referenceDate)) {
+            val dStr = dateFormat.format(cal.time)
+            val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
+            val rowIndex = if (dayOfWeek == Calendar.SUNDAY) 6 else dayOfWeek - Calendar.MONDAY
+            grid[rowIndex].add(HeatmapCell(dStr, 0, 0, 0))
+            cal.add(Calendar.DAY_OF_YEAR, 1)
+        }
+        return grid
     }
 
     suspend fun toggleHabit(habitId: Long, dateString: String) {
@@ -271,10 +376,19 @@ class HabitRepository(
         habitDao.deleteLogsForHabit(habitId)
     }
 
-    suspend fun resetToSampleData() {
+    suspend fun addCategory(name: String): Long {
+        return habitDao.insertCategory(CategoryEntity(name = name.trim(), isDefault = false))
+    }
+
+    suspend fun deleteCategory(categoryId: Long) {
+        habitDao.deleteCategoryById(categoryId)
+    }
+
+    // Reset All Data: Wipes habits, logs, and custom categories back to clean blank slate
+    suspend fun resetAllData() {
         habitDao.clearAllLogs()
         habitDao.clearAllHabits()
-        habitDao.insertHabits(SampleDataPreloader.defaultHabits)
-        habitDao.insertLogs(SampleDataPreloader.generateInitialLogs())
+        habitDao.clearAllCategories()
+        habitDao.insertCategories(SampleDataPreloader.defaultCategories)
     }
 }

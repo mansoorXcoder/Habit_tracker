@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,13 +19,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -45,12 +48,12 @@ import androidx.compose.ui.unit.sp
 import com.example.data.model.HabitWithLog
 import com.example.ui.components.CircularProgressGauge
 import com.example.ui.components.HabitIconBadge
-import com.example.ui.theme.HabitGreenContainer
-import com.example.ui.theme.HabitGreenPrimary
-import com.example.ui.theme.HabitOutline
-import com.example.ui.theme.HabitOutlineVariant
-import com.example.ui.theme.HabitTextPrimary
-import com.example.ui.theme.HabitTextSecondary
+import com.example.ui.theme.MonoBlack
+import com.example.ui.theme.MonoBorder
+import com.example.ui.theme.MonoGrayLight
+import com.example.ui.theme.MonoGrayMedium
+import com.example.ui.theme.MonoSurfaceVariant
+import com.example.ui.theme.MonoWhite
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -95,23 +98,21 @@ fun TodayScreen(
                         text = "Good Morning,",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
-                        color = HabitTextSecondary
+                        color = MonoGrayMedium
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = userName,
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
-                            color = HabitTextPrimary
+                            color = MonoBlack
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "🌱", fontSize = 18.sp)
                     }
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "Keep going! You're doing great.",
                         fontSize = 13.sp,
-                        color = HabitTextSecondary
+                        color = MonoGrayMedium
                     )
                 }
 
@@ -122,7 +123,7 @@ fun TodayScreen(
                     Icon(
                         imageVector = Icons.Default.Settings,
                         contentDescription = "Settings",
-                        tint = HabitTextSecondary,
+                        tint = MonoBlack,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -136,8 +137,8 @@ fun TodayScreen(
                     .fillMaxWidth()
                     .testTag("today_progress_card"),
                 shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, HabitOutlineVariant),
+                colors = CardDefaults.cardColors(containerColor = MonoWhite),
+                border = BorderStroke(1.dp, MonoBorder),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
@@ -162,7 +163,7 @@ fun TodayScreen(
                             text = "Today's Progress",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = HabitTextPrimary
+                            color = MonoBlack
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
@@ -170,7 +171,7 @@ fun TodayScreen(
                         Text(
                             text = "$completedCount of $totalCount habits completed",
                             fontSize = 12.sp,
-                            color = HabitTextSecondary
+                            color = MonoGrayMedium
                         )
 
                         Spacer(modifier = Modifier.height(10.dp))
@@ -182,8 +183,8 @@ fun TodayScreen(
                                 .fillMaxWidth()
                                 .height(6.dp)
                                 .clip(RoundedCornerShape(3.dp)),
-                            color = HabitGreenPrimary,
-                            trackColor = HabitGreenContainer,
+                            color = MonoBlack,
+                            trackColor = MonoSurfaceVariant,
                             strokeCap = StrokeCap.Round
                         )
 
@@ -194,13 +195,14 @@ fun TodayScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Color(0xFFF3F6F4))
+                                .background(MonoSurfaceVariant)
+                                .border(BorderStroke(1.dp, MonoBorder), RoundedCornerShape(12.dp))
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.CalendarToday,
                                 contentDescription = null,
-                                tint = HabitTextSecondary,
+                                tint = MonoGrayMedium,
                                 modifier = Modifier.size(12.dp)
                             )
                             Spacer(modifier = Modifier.width(5.dp))
@@ -208,7 +210,7 @@ fun TodayScreen(
                                 text = dateDisplay,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = HabitTextSecondary
+                                color = MonoBlack
                             )
                         }
                     }
@@ -229,13 +231,13 @@ fun TodayScreen(
                     text = "Today's Habits",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
-                    color = HabitTextPrimary
+                    color = MonoBlack
                 )
 
                 Row(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
-                        .background(HabitGreenContainer)
+                        .background(MonoBlack)
                         .clickable { onAddHabitClick() }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                         .testTag("add_habit_button"),
@@ -244,7 +246,7 @@ fun TodayScreen(
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "Add Habit",
-                        tint = HabitGreenPrimary,
+                        tint = MonoWhite,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
@@ -252,8 +254,47 @@ fun TodayScreen(
                         text = "Add",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = HabitGreenPrimary
+                        color = MonoWhite
                     )
+                }
+            }
+        }
+
+        // Empty state when no habits exist
+        if (todayHabits.isEmpty()) {
+            item {
+                Spacer(modifier = Modifier.height(20.dp))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Checklist,
+                        contentDescription = null,
+                        modifier = Modifier.size(44.dp),
+                        tint = MonoGrayLight
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "No habits scheduled for today",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MonoBlack
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Tap 'Add' to set up your first daily routine.",
+                        fontSize = 12.sp,
+                        color = MonoGrayMedium
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Button(
+                        onClick = onAddHabitClick,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MonoBlack)
+                    ) {
+                        Text("Add Habit", color = MonoWhite)
+                    }
                 }
             }
         }
@@ -264,11 +305,11 @@ fun TodayScreen(
             val isDone = item.isCompletedToday
 
             val checkBgColor by animateColorAsState(
-                targetValue = if (isDone) HabitGreenPrimary else Color.Transparent,
+                targetValue = if (isDone) MonoBlack else Color.Transparent,
                 label = "check_bg"
             )
             val checkBorderColor by animateColorAsState(
-                targetValue = if (isDone) HabitGreenPrimary else HabitOutline,
+                targetValue = if (isDone) MonoBlack else MonoBorder,
                 label = "check_border"
             )
 
@@ -278,8 +319,8 @@ fun TodayScreen(
                     .clickable { onHabitClick(habit.id) }
                     .testTag("habit_item_${habit.id}"),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, HabitOutlineVariant),
+                colors = CardDefaults.cardColors(containerColor = MonoWhite),
+                border = BorderStroke(1.dp, MonoBorder),
                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
             ) {
                 Row(
@@ -288,7 +329,7 @@ fun TodayScreen(
                         .padding(horizontal = 16.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Habit Icon in soft circular badge
+                    // Habit Icon badge
                     HabitIconBadge(
                         iconName = habit.iconName,
                         size = 46.dp,
@@ -303,13 +344,13 @@ fun TodayScreen(
                             text = habit.title,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = HabitTextPrimary
+                            color = MonoBlack
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = if (habit.subtitle.isNotBlank()) habit.subtitle else habit.goalDuration,
                             fontSize = 12.sp,
-                            color = HabitTextSecondary
+                            color = MonoGrayMedium
                         )
                     }
 
@@ -319,33 +360,15 @@ fun TodayScreen(
                             .size(26.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(checkBgColor)
-                            .clickable { onToggleHabit(habit.id) }
-                            .padding(2.dp),
+                            .border(BorderStroke(1.dp, checkBorderColor), RoundedCornerShape(8.dp))
+                            .clickable { onToggleHabit(habit.id) },
                         contentAlignment = Alignment.Center
                     ) {
-                        if (!isDone) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(RoundedCornerShape(7.dp))
-                                    .background(Color.White)
-                                    .clip(RoundedCornerShape(6.dp))
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(checkBorderColor)
-                                        .padding(1.5.dp)
-                                        .clip(RoundedCornerShape(5.dp))
-                                        .background(Color.White)
-                                )
-                            }
-                        } else {
+                        if (isDone) {
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = "Completed",
-                                tint = Color.White,
+                                tint = MonoWhite,
                                 modifier = Modifier.size(16.dp)
                             )
                         }

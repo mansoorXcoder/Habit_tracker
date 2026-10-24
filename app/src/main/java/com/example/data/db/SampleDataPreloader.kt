@@ -1,5 +1,6 @@
 package com.example.data.db
 
+import com.example.data.model.CategoryEntity
 import com.example.data.model.HabitEntity
 import com.example.data.model.HabitLogEntity
 import java.text.SimpleDateFormat
@@ -8,6 +9,13 @@ import java.util.Date
 import java.util.Locale
 
 object SampleDataPreloader {
+
+    val defaultCategories = listOf(
+        CategoryEntity(name = "Productivity", isDefault = true),
+        CategoryEntity(name = "Health", isDefault = true),
+        CategoryEntity(name = "Learning", isDefault = true),
+        CategoryEntity(name = "Lifestyle", isDefault = true)
+    )
 
     val defaultHabits = listOf(
         HabitEntity(
@@ -78,9 +86,6 @@ object SampleDataPreloader {
         val cal = Calendar.getInstance()
         cal.time = todayDate
 
-        // Today's logs (matching prototype: 4 of 5 completed)
-        // Habits 1 (Read), 2 (Workout), 3 (Code) completed = true
-        // Habit 4 (Water), 5 (Sleep early) = false
         val todayStr = dateFormat.format(cal.time)
         logs.add(HabitLogEntity(habitId = 1, dateString = todayStr, completed = true))
         logs.add(HabitLogEntity(habitId = 2, dateString = todayStr, completed = true))
@@ -88,8 +93,6 @@ object SampleDataPreloader {
         logs.add(HabitLogEntity(habitId = 4, dateString = todayStr, completed = false))
         logs.add(HabitLogEntity(habitId = 5, dateString = todayStr, completed = false))
 
-        // Past 180 days history for rich Heatmap and Weekly Progress
-        // With a consistent 7-day streak leading up to today
         val randomSeed = java.util.Random(42)
 
         for (dayOffset in 1..180) {
@@ -98,16 +101,13 @@ object SampleDataPreloader {
             pastCal.add(Calendar.DAY_OF_YEAR, -dayOffset)
             val pastDateStr = dateFormat.format(pastCal.time)
 
-            // Past 6 days (days 1 to 6 before today) were all completed to maintain the 7-day streak!
             val isStreakDay = dayOffset in 1..6
 
             defaultHabits.forEach { habit ->
                 val completed = if (isStreakDay) {
-                    // Code and Read completed every day in streak
                     if (habit.id == 3L || habit.id == 1L) true
                     else randomSeed.nextFloat() > 0.15f
                 } else {
-                    // General completion probability around 75-80%
                     randomSeed.nextFloat() > 0.22f
                 }
 
@@ -128,19 +128,16 @@ object SampleDataPreloader {
     }
 
     suspend fun seedDatabaseIfEmpty(dao: HabitDao) {
-        val existingHabits = dao.getAllHabitsSync()
+        val existingCategories = dao.getAllCategoriesSync()
+        if (existingCategories.isEmpty()) {
+            dao.insertCategories(defaultCategories)
+        }
+
+        val existingHabits = dao.getAllHabitsList()
         if (existingHabits.isEmpty()) {
             dao.insertHabits(defaultHabits)
             val logs = generateInitialLogs()
             dao.insertLogs(logs)
         }
-    }
-
-    private suspend fun HabitDao.getAllHabitsSync(): List<HabitEntity> {
-        var result: List<HabitEntity> = emptyList()
-        // Simple one-shot fetch
-        val list = this.getHabitByIdSync(1)
-        if (list != null) return listOf(list)
-        return emptyList()
     }
 }

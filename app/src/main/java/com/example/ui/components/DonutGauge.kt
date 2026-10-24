@@ -18,10 +18,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.HabitGreenContainer
-import com.example.ui.theme.HabitGreenPrimary
-import com.example.ui.theme.HabitTextPrimary
-import com.example.ui.theme.HabitTextSecondary
+import com.example.ui.theme.MonoBlack
+import com.example.ui.theme.MonoBorder
+import com.example.ui.theme.MonoGrayMedium
 
 @Composable
 fun CircularProgressGauge(
@@ -30,8 +29,8 @@ fun CircularProgressGauge(
     modifier: Modifier = Modifier,
     size: Dp = 100.dp,
     strokeWidth: Dp = 9.dp,
-    trackColor: Color = HabitGreenContainer,
-    progressColor: Color = HabitGreenPrimary
+    trackColor: Color = MonoBorder,
+    progressColor: Color = MonoBlack
 ) {
     val progress = if (total > 0) (completed.toFloat() / total.toFloat()).coerceIn(0f, 1f) else 0f
     val animatedProgress by animateFloatAsState(
@@ -79,13 +78,13 @@ fun CircularProgressGauge(
                 text = "$completed/$total",
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold,
-                color = HabitTextPrimary
+                color = MonoBlack
             )
             Text(
                 text = "habits done",
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Medium,
-                color = HabitTextSecondary
+                color = MonoGrayMedium
             )
         }
     }
@@ -97,8 +96,8 @@ fun DonutRateChart(
     modifier: Modifier = Modifier,
     size: Dp = 110.dp,
     strokeWidth: Dp = 12.dp,
-    trackColor: Color = Color(0xFFE2EBE4),
-    progressColor: Color = HabitGreenPrimary
+    trackColor: Color = MonoBorder,
+    progressColor: Color = MonoBlack
 ) {
     val progress = (percentage.toFloat() / 100f).coerceIn(0f, 1f)
     val animatedProgress by animateFloatAsState(
@@ -128,15 +127,17 @@ fun DonutRateChart(
             )
 
             // Completed arc
-            drawArc(
-                color = progressColor,
-                startAngle = -90f,
-                sweepAngle = 360f * animatedProgress,
-                useCenter = false,
-                style = Stroke(width = strokePx, cap = StrokeCap.Round),
-                topLeft = androidx.compose.ui.geometry.Offset(topLeftOffset, topLeftOffset),
-                size = androidx.compose.ui.geometry.Size(arcSize, arcSize)
-            )
+            if (animatedProgress > 0f) {
+                drawArc(
+                    color = progressColor,
+                    startAngle = -90f,
+                    sweepAngle = 360f * animatedProgress,
+                    useCenter = false,
+                    style = Stroke(width = strokePx, cap = StrokeCap.Round),
+                    topLeft = androidx.compose.ui.geometry.Offset(topLeftOffset, topLeftOffset),
+                    size = androidx.compose.ui.geometry.Size(arcSize, arcSize)
+                )
+            }
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -144,13 +145,13 @@ fun DonutRateChart(
                 text = "$percentage%",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = HabitTextPrimary
+                color = MonoBlack
             )
             Text(
                 text = "Overall",
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Medium,
-                color = HabitTextSecondary
+                color = MonoGrayMedium
             )
         }
     }

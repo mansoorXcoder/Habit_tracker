@@ -2,43 +2,58 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// HabitFlow Brand Forest Green & Sage Palette
-val HabitGreenPrimary = Color(0xFF2E6F40)
-val HabitGreenDark = Color(0xFF1E4C2B)
-val HabitGreenLight = Color(0xFF4C915E)
-val HabitGreenContainer = Color(0xFFE8F5E9)
-val HabitOnGreenContainer = Color(0xFF163E23)
+// Pure Monochrome & Neutral Grayscale Palette
+val MonoBlack = Color(0xFF000000)
+val MonoCharcoal = Color(0xFF18181B)
+val MonoDarkGray = Color(0xFF27272A)
+val MonoGrayMedium = Color(0xFF71717A)
+val MonoGrayLight = Color(0xFFA1A1AA)
+val MonoBorder = Color(0xFFE4E4E7)
+val MonoSurfaceVariant = Color(0xFFF4F4F5)
+val MonoBackgroundLight = Color(0xFFFAFAFA)
+val MonoWhite = Color(0xFFFFFFFF)
 
-val HabitBackgroundLight = Color(0xFFF7FAF7)
-val HabitSurfaceLight = Color(0xFFFFFFFF)
-val HabitSurfaceVariant = Color(0xFFF0F4F0)
-val HabitOutline = Color(0xFFD6DFD7)
-val HabitOutlineVariant = Color(0xFFE5EDE6)
+// Backward compatible aliases mapped to monochrome tokens
+val HabitGreenPrimary = MonoBlack
+val HabitGreenDark = MonoCharcoal
+val HabitGreenLight = MonoDarkGray
+val HabitGreenContainer = MonoSurfaceVariant
+val HabitOnGreenContainer = MonoBlack
 
-val HabitTextPrimary = Color(0xFF1B231D)
-val HabitTextSecondary = Color(0xFF637367)
-val HabitTextTertiary = Color(0xFF8F9E94)
+val HabitBackgroundLight = MonoBackgroundLight
+val HabitSurfaceLight = MonoWhite
+val HabitSurfaceVariant = MonoSurfaceVariant
+val HabitOutline = MonoBorder
+val HabitOutlineVariant = Color(0xFFEBEBEF)
 
-// Category Accent Colors
-val CatHealthBg = Color(0xFFDCFCE7)
-val CatHealthText = Color(0xFF15803D)
-val CatProductivityBg = Color(0xFFE0F2FE)
-val CatProductivityText = Color(0xFF0369A1)
-val CatLearningBg = Color(0xFFF3E8FF)
-val CatLearningText = Color(0xFF7E22CE)
-val CatLifestyleBg = Color(0xFFFFEDD5)
-val CatLifestyleText = Color(0xFFC2410C)
+val HabitTextPrimary = MonoBlack
+val HabitTextSecondary = MonoGrayMedium
+val HabitTextTertiary = MonoGrayLight
 
-// Heatmap Levels
-val Heatmap0 = Color(0xFFEBF1EC)
-val Heatmap1 = Color(0xFFB4DEBF)
-val Heatmap2 = Color(0xFF67B27C)
-val Heatmap3 = Color(0xFF2E6F40)
+// Monochrome Category Styling
+val CatNeutralBg = Color(0xFFF4F4F5)
+val CatNeutralText = Color(0xFF18181B)
+val CatNeutralBorder = Color(0xFFE4E4E7)
+
+val CatHealthBg = CatNeutralBg
+val CatHealthText = CatNeutralText
+val CatProductivityBg = CatNeutralBg
+val CatProductivityText = CatNeutralText
+val CatLearningBg = CatNeutralBg
+val CatLearningText = CatNeutralText
+val CatLifestyleBg = CatNeutralBg
+val CatLifestyleText = CatNeutralText
+
+// Monochromatic Heatmap Levels
+val Heatmap0 = Color(0xFFEAEAEA) // Inactive/0
+val Heatmap1 = Color(0xFFAFAFAF) // Low
+val Heatmap2 = Color(0xFF555555) // Medium
+val Heatmap3 = Color(0xFF000000) // High
 
 // Dark Mode Palette
-val HabitGreenPrimaryDark = Color(0xFF64C282)
-val HabitBackgroundDark = Color(0xFF111713)
-val HabitSurfaceDark = Color(0xFF19221C)
-val HabitSurfaceVariantDark = Color(0xFF233027)
-val HabitTextPrimaryDark = Color(0xFFE5ECE6)
-val HabitTextSecondaryDark = Color(0xFF9EAEA1)
+val HabitGreenPrimaryDark = MonoWhite
+val HabitBackgroundDark = Color(0xFF09090B)
+val HabitSurfaceDark = Color(0xFF141416)
+val HabitSurfaceVariantDark = Color(0xFF202024)
+val HabitTextPrimaryDark = Color(0xFFFAFAFA)
+val HabitTextSecondaryDark = Color(0xFFA1A1AA)
