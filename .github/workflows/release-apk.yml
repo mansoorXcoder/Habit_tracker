@@ -14,7 +14,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-release:
@@ -67,7 +67,7 @@ jobs:
 
           # Check published GitHub Releases (tag_name or body containing versionCode: N or +N)
           if command -v gh >/dev/null 2>&1; then
-            RELEASE_CODES=$(gh api "repos/${GITHUB_repository:-$GITHUB_REPOSITORY}/releases" --paginate --jq '.[].tag_name, .[].name, .[].body' 2>/dev/null | grep -Eo '(versionCode[:= ]+[0-9]+|\+[0-9]+)' | grep -Eo '[0-9]+' || true)
+            RELEASE_CODES=$(gh api "repos/${GITHUB_REPOSITORY}/releases" --paginate --jq '.[].tag_name, .[].name, .[].body' 2>/dev/null | grep -Eo '(versionCode[:= ]+[0-9]+|\+[0-9]+)' | grep -Eo '[0-9]+' || true)
             for code in $RELEASE_CODES; do
               NUM_CODE=$((10#$code))
               if (( NUM_CODE > MAX_PREVIOUS_CODE )); then
@@ -81,7 +81,13 @@ jobs:
             exit 1
           fi
 
-          echo "Validated release versionName=${INPUT_VERSION_NAME}, versionCode=${REQUESTED_CODE} (highest detected previous release code: ${MAX_PREVIOUS_CODE})."
+          RELEASE_TAG="v${INPUT_VERSION_NAME}+${REQUESTED_CODE}"
+          if git rev-parse "${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "::error::Git tag '${RELEASE_TAG}' already exists."
+            exit 1
+          fi
+
+          echo "Validated release versionName=${INPUT_VERSION_NAME}, versionCode=${REQUESTED_CODE}, tag=${RELEASE_TAG} (highest detected previous release code: ${MAX_PREVIOUS_CODE})."
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -139,10 +145,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
-          if [[ -z "${APK_PATH}" || ! -f "${APK_PATH}" ]]; then
-            echo "::error::Signed release APK not found under app/build/outputs/apk/release/."
-            exit 1
+          APK_PATH="app/build/outputs/apk/release/app-release.apk"
+          if [[ ! -f "${APK_PATH}" ]]; then
+            FOUND_APK=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+            if [[ -z "${FOUND_APK}" || ! -f "${FOUND_APK}" ]]; then
+              echo "::error::Signed release APK not found under app/build/outputs/apk/release/."
+              exit 1
+            fi
+            cp "${FOUND_APK}" "${APK_PATH}"
           fi
 
           SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
@@ -172,8 +182,30 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: HabitFlow-Release-APK
-          path: app/build/outputs/apk/release/*.apk
+          path: app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          set -euo pipefail
+
+          RELEASE_TAG="v${VERSION_NAME}+${VERSION_CODE}"
+          RELEASE_TITLE="HabitFlow v${VERSION_NAME} (Build ${VERSION_CODE})"
+          APK_FILE="app/build/outputs/apk/release/app-release.apk"
+
+          if [[ ! -f "${APK_FILE}" ]]; then
+            echo "::error::Release APK file not found at ${APK_FILE}"
+            exit 1
+          fi
+
+          gh release create "${RELEASE_TAG}" "${APK_FILE}" \
+            --title "${RELEASE_TITLE}" \
+            --generate-notes \
+            --target "${GITHUB_SHA}"
 
       - name: Clean up temporary release keystore
         if: always()
