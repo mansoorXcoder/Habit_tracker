@@ -1,0 +1,186 @@
+name: Build Signed Release APK
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_name:
+        description: 'Release versionName (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+        type: string
+      version_code:
+        description: 'Release versionCode (positive integer, must increase with each official release, e.g., 2)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release version inputs
+        env:
+          INPUT_VERSION_NAME: ${{ inputs.version_name }}
+          INPUT_VERSION_CODE: ${{ inputs.version_code }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          # 1. Validate version_name format (e.g., 1.0, 1.0.0, 1.2.3-beta.1)
+          if [[ -z "${INPUT_VERSION_NAME}" ]]; then
+            echo "::error::version_name cannot be empty."
+            exit 1
+          fi
+          if ! [[ "${INPUT_VERSION_NAME}" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid version_name '${INPUT_VERSION_NAME}'. Expected semantic format such as 1.0.0 or 1.1.0."
+            exit 1
+          fi
+
+          # 2. Validate version_code is a positive integer
+          if ! [[ "${INPUT_VERSION_CODE}" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::Invalid version_code '${INPUT_VERSION_CODE}'. Must be a positive integer (1, 2, 3, ...)."
+            exit 1
+          fi
+
+          REQUESTED_CODE=$((10#${INPUT_VERSION_CODE}))
+
+          # 3. Check against previous official GitHub Releases and Git tags (if any exist)
+          MAX_PREVIOUS_CODE=0
+
+          # Check Git tags matching patterns like v1.0.0+2, v1.0.0-code2, or code-2
+          while IFS= read -r tag; do
+            if [[ "$tag" =~ \+([0-9]+)$ ]] || [[ "$tag" =~ code[-_]?([0-9]+)$ ]]; then
+              TAG_CODE=$((10#${BASH_REMATCH[1]}))
+              if (( TAG_CODE > MAX_PREVIOUS_CODE )); then
+                MAX_PREVIOUS_CODE=$TAG_CODE
+              fi
+            fi
+          done < <(git tag -l)
+
+          # Check published GitHub Releases (tag_name or body containing versionCode: N or +N)
+          if command -v gh >/dev/null 2>&1; then
+            RELEASE_CODES=$(gh api "repos/${GITHUB_repository:-$GITHUB_REPOSITORY}/releases" --paginate --jq '.[].tag_name, .[].name, .[].body' 2>/dev/null | grep -Eo '(versionCode[:= ]+[0-9]+|\+[0-9]+)' | grep -Eo '[0-9]+' || true)
+            for code in $RELEASE_CODES; do
+              NUM_CODE=$((10#$code))
+              if (( NUM_CODE > MAX_PREVIOUS_CODE )); then
+                MAX_PREVIOUS_CODE=$NUM_CODE
+              fi
+            done
+          fi
+
+          if (( MAX_PREVIOUS_CODE > 0 && REQUESTED_CODE <= MAX_PREVIOUS_CODE )); then
+            echo "::error::Requested version_code (${REQUESTED_CODE}) must be strictly greater than the highest previously released version_code (${MAX_PREVIOUS_CODE})."
+            exit 1
+          fi
+
+          echo "Validated release versionName=${INPUT_VERSION_NAME}, versionCode=${REQUESTED_CODE} (highest detected previous release code: ${MAX_PREVIOUS_CODE})."
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode release keystore from secrets
+        env:
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          set +x
+          set -euo pipefail
+
+          if [[ -z "${RELEASE_KEYSTORE_BASE64}" ]]; then
+            echo "::error::Missing required GitHub secret: RELEASE_KEYSTORE_BASE64"
+            exit 1
+          fi
+          if [[ -z "${STORE_PASSWORD}" ]]; then
+            echo "::error::Missing required GitHub secret: STORE_PASSWORD"
+            exit 1
+          fi
+          if [[ -z "${KEY_PASSWORD}" ]]; then
+            echo "::error::Missing required GitHub secret: KEY_PASSWORD"
+            exit 1
+          fi
+
+          KEYSTORE_FILE="${RUNNER_TEMP}/release-upload-key.jks"
+          printf '%s' "${RELEASE_KEYSTORE_BASE64}" | tr -d '[:space:]' | base64 --decode > "${KEYSTORE_FILE}"
+          chmod 600 "${KEYSTORE_FILE}"
+
+          if [[ ! -s "${KEYSTORE_FILE}" ]]; then
+            echo "::error::Decoded keystore file is empty or invalid."
+            exit 1
+          fi
+
+          echo "KEYSTORE_PATH=${KEYSTORE_FILE}" >> "${GITHUB_ENV}"
+
+      - name: Build signed release APK
+        env:
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --stacktrace
+
+      - name: Verify release APK signature
+        run: |
+          set -euo pipefail
+
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [[ -z "${APK_PATH}" || ! -f "${APK_PATH}" ]]; then
+            echo "::error::Signed release APK not found under app/build/outputs/apk/release/."
+            exit 1
+          fi
+
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
+          if [[ -z "${SDK_ROOT}" || ! -d "${SDK_ROOT}/build-tools" ]]; then
+            echo "::error::Android SDK build-tools directory not found on runner."
+            exit 1
+          fi
+
+          APKSIGNER=$(find "${SDK_ROOT}/build-tools" -name apksigner | sort -V | tail -n 1)
+          if [[ -z "${APKSIGNER}" || ! -x "${APKSIGNER}" ]]; then
+            echo "::error::apksigner binary not found in Android SDK build-tools."
+            exit 1
+          fi
+
+          echo "Verifying APK signature for ${APK_PATH} using ${APKSIGNER}..."
+          CERT_OUTPUT=$("${APKSIGNER}" verify --verbose --print-certs "${APK_PATH}")
+          echo "${CERT_OUTPUT}"
+
+          if echo "${CERT_OUTPUT}" | grep -q "CN=Android Debug"; then
+            echo "::error::APK is signed with the Android Debug certificate instead of the release keystore."
+            exit 1
+          fi
+
+          echo "Release APK signature verified successfully."
+
+      - name: Upload signed release APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HabitFlow-Release-APK
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+      - name: Clean up temporary release keystore
+        if: always()
+        run: |
+          set +x
+          KEYSTORE_FILE="${RUNNER_TEMP}/release-upload-key.jks"
+          if [[ -f "${KEYSTORE_FILE}" ]]; then
+            rm -f "${KEYSTORE_FILE}"
+            echo "Temporary release keystore removed."
+          fi
