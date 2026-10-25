@@ -22,26 +22,6 @@ android {
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }
 
-  // Ensure debug.keystore exists if building on a clean machine/CI runner
-  val debugKeystoreFile = file("${rootDir}/debug.keystore")
-  if (!debugKeystoreFile.exists()) {
-    try {
-      ProcessBuilder(
-        "keytool", "-genkey", "-v",
-        "-keystore", debugKeystoreFile.absolutePath,
-        "-storepass", "android",
-        "-alias", "androiddebugkey",
-        "-keypass", "android",
-        "-keyalg", "RSA",
-        "-keysize", "2048",
-        "-validity", "10000",
-        "-dname", "CN=Android Debug,O=Android,C=US"
-      ).start().waitFor()
-    } catch (_: Exception) {
-      // Fallback handled in workflow
-    }
-  }
-
   // Do not remove or modify these signingConfigs. They are necessary for building, installing,
   // and updating Android apps in AI Studio.
   signingConfigs {
