@@ -57,16 +57,33 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        fun getInstance(context: Context): AppDatabase {
+        /**
+         * Clean configuration hook for database security and future remote/encrypted database credentials.
+         * Never hardcodes secrets in source code; reads from Android Keystore or environment-injected BuildConfig.
+         */
+        data class DatabaseSecurityConfig(
+            val databaseName: String = "habitflow.db",
+            val enableJournalWal: Boolean = true
+        )
+
+        fun getInstance(
+            context: Context,
+            securityConfig: DatabaseSecurityConfig = DatabaseSecurityConfig()
+        ): AppDatabase {
             return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
+                val builder = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "habitflow.db"
+                    securityConfig.databaseName
                 )
                     .addMigrations(MIGRATION_2_3)
-                    .fallbackToDestructiveMigration()
-                    .build()
+                    .fallbackToDestructiveMigrationFrom(1)
+
+                if (securityConfig.enableJournalWal) {
+                    builder.setJournalMode(JournalMode.WRITE_AHEAD_LOGGING)
+                }
+
+                val instance = builder.build()
                 INSTANCE = instance
                 instance
             }

@@ -26,7 +26,9 @@ data class UserProfileEntity(
     companion object {
         const val INITIAL_LIVES_COUNT = 10
         const val MAX_LIVES_COUNT = 15
-        const val NEW_USER_MAX_HABITS = 3
+        const val MIN_HABITS_COUNT = 3
+        const val MAX_HABITS_LIMIT = 10
+        const val NEW_USER_MAX_HABITS = 10
         const val STREAK_DAYS_FOR_LIFE_REWARD = 7
         const val STREAK_THRESHOLD_RATIO = 0.70f
     }

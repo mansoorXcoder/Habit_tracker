@@ -215,10 +215,9 @@ class HabitViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun openAddHabit() {
-        val stats = progressStats.value
-        if (!stats.isHabitLimitUnlocked && allHabits.value.size >= stats.maxHabitsAllowed) {
+        if (allHabits.value.size >= UserProfileEntity.MAX_HABITS_LIMIT) {
             postError(
-                "Starter limit reached (${stats.maxHabitsAllowed} habits). Complete habits on 3 days to unlock unlimited habits!"
+                "Habit limit reached (maximum ${UserProfileEntity.MAX_HABITS_LIMIT} habits allowed)."
             )
             return
         }

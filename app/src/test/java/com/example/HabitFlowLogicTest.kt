@@ -42,7 +42,8 @@ class HabitFlowLogicTest {
             .allowMainThreadQueries()
             .build()
         dao = database.habitDao()
-        repository = HabitRepository(dao, CoroutineScope(Dispatchers.Unconfined), context)
+        repository = HabitRepository(dao, CoroutineScope(Dispatchers.Unconfined), context, autoInit = false)
+        repository.backupManager.clearMirrors()
     }
 
     @After
@@ -222,25 +223,29 @@ class HabitFlowLogicTest {
     }
 
     @Test
-    fun `new user habit limit enforces 3 habits initially and backup snapshot restores data without duplicates`() = runBlocking {
+    fun `habit limit allows between 3 and 10 habits and blocks the 11th habit while backup restores without duplicates`() = runBlocking {
         dao.clearAllLogs()
         dao.clearAllHabits()
 
-        val h1 = repository.addHabit(HabitEntity(title = "Habit One"))
-        val h2 = repository.addHabit(HabitEntity(title = "Habit Two"))
-        val h3 = repository.addHabit(HabitEntity(title = "Habit Three"))
-        assertTrue(h1.isSuccess && h2.isSuccess && h3.isSuccess)
+        // Create 10 habits (within the 3 to 10 allowed range)
+        val createdIds = mutableListOf<Long>()
+        for (i in 1..10) {
+            val res = repository.addHabit(HabitEntity(title = "Habit $i"))
+            assertTrue("Habit $i should succeed", res.isSuccess)
+            createdIds.add(res.getOrThrow())
+        }
+        assertEquals(10, dao.getAllHabitsList().size)
 
         // Duplicate habit name should fail
-        val dup = repository.addHabit(HabitEntity(title = "habit one"))
+        val dup = repository.addHabit(HabitEntity(title = "habit 1"))
         assertTrue(dup.isFailure)
 
-        // 4th habit for a brand new user with <3 active days should be blocked by starter limit
-        val h4Blocked = repository.addHabit(HabitEntity(title = "Habit Four"))
-        assertTrue(h4Blocked.isFailure)
+        // 11th habit should be blocked by the 10-habit maximum
+        val h11Blocked = repository.addHabit(HabitEntity(title = "Habit 11"))
+        assertTrue(h11Blocked.isFailure)
 
         // Toggle habit completion and export backup snapshot
-        val firstHabitId = h1.getOrThrow()
+        val firstHabitId = createdIds.first()
         repository.toggleHabit(firstHabitId, "2026-10-10")
         val snapshotJson = repository.backupManager.createSnapshotJson().getOrThrow()
 
@@ -250,8 +255,56 @@ class HabitFlowLogicTest {
         assertEquals(0, dao.getAllHabitsList().size)
 
         val restoredCount = repository.backupManager.restoreFromSnapshotJson(snapshotJson).getOrThrow()
-        assertEquals(3, restoredCount)
-        assertEquals(3, dao.getAllHabitsList().size)
+        assertEquals(10, restoredCount)
+        assertEquals(10, dao.getAllHabitsList().size)
         assertEquals(1, dao.getAllLogsSync().count { it.completed })
+    }
+
+    @Test
+    fun `security audit fixes redact syncKey from JSON exports, enforce passkey verification, and validate input bounds`() = runBlocking {
+        dao.clearAllLogs()
+        dao.clearAllHabits()
+
+        // SEC-09: Input validation bounds reject overly long habit titles (> 100 chars)
+        val longTitle = "A".repeat(101)
+        val invalidHabitResult = repository.addHabit(HabitEntity(title = longTitle))
+        assertTrue(invalidHabitResult.isFailure)
+
+        // Add a valid habit and save local backup with a secret passkey
+        val h1 = repository.addHabit(HabitEntity(title = "Morning Run")).getOrThrow()
+        repository.toggleHabit(h1, "2026-10-15")
+
+        val secretPasskey = "MySuperSecretPasskey#2026"
+        val syncSave = repository.backupManager.syncAccountData("user@example.com", secretPasskey)
+        assertTrue(syncSave.isSuccess)
+
+        // SEC-01: Stored profile syncKey must be a salted PBKDF2 hash, never plaintext
+        val storedProfile = dao.getUserProfileSync()!!
+        assertFalse(storedProfile.syncKey.contains(secretPasskey))
+        assertTrue(storedProfile.syncKey.startsWith("pbkdf2:"))
+
+        // SEC-01 & SEC-05: Exported JSON snapshot must NEVER contain syncKey or the plaintext passkey
+        val exportedJson = repository.backupManager.createSnapshotJson().getOrThrow()
+        assertFalse(exportedJson.contains("syncKey"))
+        assertFalse(exportedJson.contains(secretPasskey))
+
+        // SEC-04: Clear local logs/habits and attempt to recover with wrong passkey -> must fail
+        dao.clearAllLogs()
+        dao.clearAllHabits()
+        val wrongKeyAttempt = repository.backupManager.syncAccountData("user@example.com", "WrongPasskey")
+        assertTrue(wrongKeyAttempt.isFailure)
+
+        // Recover with correct passkey -> must succeed
+        val rightKeyAttempt = repository.backupManager.syncAccountData("user@example.com", secretPasskey)
+        assertTrue(rightKeyAttempt.isSuccess)
+        assertEquals(1, dao.getAllHabitsList().size)
+    }
+
+    @Test
+    fun `HabitViewModel instantiates cleanly via AndroidViewModelFactory`() {
+        val app = ApplicationProvider.getApplicationContext<android.app.Application>()
+        val factory = androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.getInstance(app)
+        val viewModel = factory.create(com.example.ui.HabitViewModel::class.java)
+        assertEquals(0, viewModel.selectedTab.value)
     }
 }

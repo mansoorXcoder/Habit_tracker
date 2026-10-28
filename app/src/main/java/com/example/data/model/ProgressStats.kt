@@ -81,7 +81,7 @@ data class ProgressStats(
     val hasSufficientHistory: Boolean = false,
     val isNewUser: Boolean = true,
     val isHabitLimitUnlocked: Boolean = false,
-    val maxHabitsAllowed: Int = UserProfileEntity.NEW_USER_MAX_HABITS,
+    val maxHabitsAllowed: Int = UserProfileEntity.MAX_HABITS_LIMIT,
     val activeHabitCount: Int = 0,
     val weeklyProgress: List<DayCompletion> = emptyList(),
     val trendPoints: List<TrendPoint> = emptyList(),

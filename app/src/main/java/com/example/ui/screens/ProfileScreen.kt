@@ -107,9 +107,9 @@ fun ProfileScreen(
     }
     var showMorningTimePicker by remember { mutableStateOf(false) }
 
-    // Cloud Sync & Backup states
+    // Local Backup & Recovery states (never pre-populate hashed syncKey into plaintext field)
     var accountEmail by remember(userProfile.userEmail) { mutableStateOf(userProfile.userEmail) }
-    var syncKey by remember(userProfile.syncKey) { mutableStateOf(userProfile.syncKey) }
+    var syncKey by remember { mutableStateOf("") }
     var exportedJsonText by remember { mutableStateOf<String?>(null) }
     var showImportDialog by remember { mutableStateOf(false) }
     var importJsonInput by remember { mutableStateOf("") }
@@ -424,7 +424,7 @@ fun ProfileScreen(
                 }
             }
 
-            // Data Storage, Cross-Device Account Sync & Backup Recovery Card (§1)
+            // Local Backup & Data Recovery Card (SEC-04: Clear local backup labeling & passkey protection)
             item {
                 Card(
                     modifier = Modifier
@@ -446,13 +446,13 @@ fun ProfileScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
                                 Text(
-                                    text = "Account Sync & Data Recovery",
+                                    text = "Local Backup & Data Recovery",
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MonoBlack
                                 )
                                 Text(
-                                    text = "Keep habits, streaks & history safe across reinstalls and devices",
+                                    text = "Encrypted on-device profile backup & portable recovery snapshots",
                                     fontSize = 11.sp,
                                     color = MonoGrayMedium
                                 )
@@ -496,8 +496,14 @@ fun ProfileScreen(
                         OutlinedTextField(
                             value = syncKey,
                             onValueChange = { syncKey = it },
-                            label = { Text("Recovery Passkey (optional)", fontSize = 11.sp) },
-                            placeholder = { Text("Enter secret sync key", fontSize = 12.sp, color = MonoGrayLight) },
+                            label = {
+                                Text(
+                                    if (userProfile.syncKey.isNotBlank()) "Recovery Passkey (Protected · enter to verify/update)"
+                                    else "Recovery Passkey (optional)",
+                                    fontSize = 11.sp
+                                )
+                            },
+                            placeholder = { Text("Enter secret passkey (stored as PBKDF2 hash)", fontSize = 12.sp, color = MonoGrayLight) },
                             singleLine = true,
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -514,7 +520,10 @@ fun ProfileScreen(
                         Spacer(modifier = Modifier.height(10.dp))
 
                         Button(
-                            onClick = { onSyncAccount(accountEmail, syncKey) },
+                            onClick = {
+                                onSyncAccount(accountEmail, syncKey)
+                                syncKey = ""
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .testTag("sync_account_button"),
@@ -523,7 +532,7 @@ fun ProfileScreen(
                         ) {
                             Icon(imageVector = Icons.Default.CloudSync, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Sync & Recover Account Data", color = MonoWhite, fontSize = 12.sp)
+                            Text("Save & Recover Local Backup", color = MonoWhite, fontSize = 12.sp)
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))

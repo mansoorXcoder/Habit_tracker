@@ -31,14 +31,40 @@ import kotlin.math.roundToInt
 class HabitRepository(
     private val habitDao: HabitDao,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
-    context: Context? = null
+    context: Context? = null,
+    autoInit: Boolean = true
 ) {
+    companion object {
+        const val MAX_TITLE_LENGTH = 100
+        const val MAX_SUBTITLE_LENGTH = 200
+        const val MAX_CATEGORY_LENGTH = 50
+        const val MAX_DURATION_LENGTH = 50
+
+        fun validateHabitFields(title: String, subtitle: String, category: String, goalDuration: String) {
+            require(title.isNotEmpty()) { "Habit title cannot be empty." }
+            require(title.length <= MAX_TITLE_LENGTH) {
+                "Habit title cannot exceed $MAX_TITLE_LENGTH characters."
+            }
+            require(subtitle.length <= MAX_SUBTITLE_LENGTH) {
+                "Habit description cannot exceed $MAX_SUBTITLE_LENGTH characters."
+            }
+            require(category.isNotEmpty() && category.length <= MAX_CATEGORY_LENGTH) {
+                "Category name must be between 1 and $MAX_CATEGORY_LENGTH characters."
+            }
+            require(goalDuration.length <= MAX_DURATION_LENGTH) {
+                "Goal duration cannot exceed $MAX_DURATION_LENGTH characters."
+            }
+        }
+    }
+
     val backupManager = BackupRecoveryManager(habitDao, context)
 
     init {
-        scope.launch {
-            backupManager.tryAutoRecoverIfDatabaseCleared()
-            SampleDataPreloader.seedDatabaseIfEmpty(habitDao)
+        if (autoInit) {
+            scope.launch {
+                backupManager.tryAutoRecoverIfDatabaseCleared()
+                SampleDataPreloader.seedDatabaseIfEmpty(habitDao)
+            }
         }
     }
 
@@ -230,9 +256,9 @@ class HabitRepository(
             }
         }
 
-        // Unlock more than 3 habits once user has >= 3 active completed days or >= 3 streak days
-        val isHabitLimitUnlocked = activeLoggedDates.size >= 3 || streakEval.currentStreakDays >= 3
-        val maxHabitsAllowed = if (isHabitLimitUnlocked) 50 else UserProfileEntity.NEW_USER_MAX_HABITS
+        // Support between 3 and 10 active habits
+        val maxHabitsAllowed = UserProfileEntity.MAX_HABITS_LIMIT
+        val isHabitLimitUnlocked = habits.size < maxHabitsAllowed
 
         if (habits.isEmpty()) {
             val emptyWeekly = CompletionRateStats(CompletionRateFilter.WEEKLY, 0, 0, 0, 0, "This Week")
@@ -765,7 +791,11 @@ class HabitRepository(
     suspend fun addHabit(habit: HabitEntity): Result<Long> = withContext(Dispatchers.IO) {
         runCatching {
             val cleanTitle = habit.title.trim()
-            require(cleanTitle.isNotEmpty()) { "Habit title cannot be empty." }
+            val cleanSubtitle = habit.subtitle.trim()
+            val cleanCategory = habit.category.trim().ifEmpty { "Productivity" }
+            val cleanDuration = habit.goalDuration.trim()
+
+            validateHabitFields(cleanTitle, cleanSubtitle, cleanCategory, cleanDuration)
 
             // Check duplicate habit title
             val duplicate = habitDao.getHabitByTitleSync(cleanTitle)
@@ -773,18 +803,22 @@ class HabitRepository(
                 throw IllegalArgumentException("A habit named '$cleanTitle' already exists.")
             }
 
-            // Check new-user initial habit limit
+            // Enforce 3 to 10 habit entry limit (maximum 10 habits)
             val currentHabits = habitDao.getAllHabitsList()
-            val allLogs = habitDao.getAllLogsSync()
-            val activeDays = allLogs.filter { it.completed }.map { it.dateString }.distinct().size
-            val isUnlocked = activeDays >= 3
-            if (!isUnlocked && currentHabits.size >= UserProfileEntity.NEW_USER_MAX_HABITS) {
+            if (currentHabits.size >= UserProfileEntity.MAX_HABITS_LIMIT) {
                 throw IllegalStateException(
-                    "New users can track up to ${UserProfileEntity.NEW_USER_MAX_HABITS} core habits initially. Complete habits across 3 days to unlock unlimited habits!"
+                    "You can track between ${UserProfileEntity.MIN_HABITS_COUNT} and ${UserProfileEntity.MAX_HABITS_LIMIT} habits (maximum ${UserProfileEntity.MAX_HABITS_LIMIT} reached)."
                 )
             }
 
-            val id = habitDao.insertHabit(habit.copy(title = cleanTitle))
+            val id = habitDao.insertHabit(
+                habit.copy(
+                    title = cleanTitle,
+                    subtitle = cleanSubtitle,
+                    category = cleanCategory,
+                    goalDuration = cleanDuration
+                )
+            )
             backupManager.createSnapshotJson()
             id
         }
@@ -793,7 +827,11 @@ class HabitRepository(
     suspend fun updateHabit(habit: HabitEntity): Result<Unit> = withContext(Dispatchers.IO) {
         runCatching {
             val cleanTitle = habit.title.trim()
-            require(cleanTitle.isNotEmpty()) { "Habit title cannot be empty." }
+            val cleanSubtitle = habit.subtitle.trim()
+            val cleanCategory = habit.category.trim().ifEmpty { "Productivity" }
+            val cleanDuration = habit.goalDuration.trim()
+
+            validateHabitFields(cleanTitle, cleanSubtitle, cleanCategory, cleanDuration)
 
             val duplicate = habitDao.getHabitByTitleSync(cleanTitle)
             if (duplicate != null && duplicate.id != habit.id) {
@@ -803,7 +841,15 @@ class HabitRepository(
             // Preserve original createdAt timestamp when editing an existing habit
             val existing = habitDao.getHabitByIdSync(habit.id)
             val preservedCreatedAt = existing?.createdAt ?: habit.createdAt
-            habitDao.updateHabit(habit.copy(title = cleanTitle, createdAt = preservedCreatedAt))
+            habitDao.updateHabit(
+                habit.copy(
+                    title = cleanTitle,
+                    subtitle = cleanSubtitle,
+                    category = cleanCategory,
+                    goalDuration = cleanDuration,
+                    createdAt = preservedCreatedAt
+                )
+            )
             backupManager.createSnapshotJson()
             Unit
         }
@@ -822,6 +868,9 @@ class HabitRepository(
         runCatching {
             val cleanName = name.trim()
             require(cleanName.isNotEmpty()) { "Category name cannot be empty." }
+            require(cleanName.length <= MAX_CATEGORY_LENGTH) {
+                "Category name cannot exceed $MAX_CATEGORY_LENGTH characters."
+            }
             val existing = habitDao.getCategoryByNameSync(cleanName)
             if (existing != null) {
                 throw IllegalArgumentException("Category '$cleanName' already exists.")

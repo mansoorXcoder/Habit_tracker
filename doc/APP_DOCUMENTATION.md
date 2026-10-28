@@ -338,9 +338,8 @@ HabitFlow implements a unique habit-forming algorithm located in `HabitRepositor
    - New users start with **10 recovery lives** (capped at 15).
    - If a user misses a day (completion $< 70\%$) on an active streak, one life is consumed to protect the streak.
    - For every **7 consecutive qualifying streak days**, **+1 recovery life** is rewarded.
-4. **Starter Habit Limit**:
-   - New users are initially restricted to **3 core habits** (`UserProfileEntity.NEW_USER_MAX_HABITS`) to prevent habit fatigue.
-   - Once a user logs completions across **3 distinct days**, unlimited habits are permanently unlocked.
+4. **Habit Entry Range (3 to 10 Habits)**:
+   - Users can create and track between **3 and 10 active habits** (`UserProfileEntity.MIN_HABITS_COUNT = 3`, `UserProfileEntity.MAX_HABITS_LIMIT = 10`) to maintain focus and prevent habit fatigue.
 
 ---
 
@@ -352,8 +351,8 @@ HabitFlow implements a unique habit-forming algorithm located in `HabitRepositor
    - Tests initial life counts and empty-state progress charts.
    - Tests the 70% threshold logic vs 100% perfect days.
    - Tests streak continuation and recovery life deductions.
-   - Tests starter limit enforcement (blocking the 4th habit until 3 active days are completed).
-   - Tests JSON backup snapshot serialization, deserialization, and deduplication.
+   - Tests the 3-to-10 habit limit enforcement (allowing up to 10 habits and blocking the 11th).
+   - Tests JSON backup snapshot serialization, `syncKey` redaction, PBKDF2 passkey verification, and input validation bounds.
 2. **Host Unit Tests (`app/src/test/java/com/example/ExampleUnitTest.kt`)**:
    - Basic JVM sanity checks.
 3. **Robolectric Context Test (`app/src/test/java/com/example/ExampleRobolectricTest.kt`)**:
@@ -374,17 +373,16 @@ Execute tests via Gradle:
 
 ---
 
-## 10. Missing Configurations, Implementation Gaps & Known Issues
+## 10. Security & Configuration Status
 
-| Component | Status / Gap | Details |
+| Component | Status | Details |
 | :--- | :--- | :--- |
-| **Cloud Backend / Remote Sync** | **Missing** | The UI contains an "Account Sync" card, but no backend exists. Snapshots are stored in local `SharedPreferences`. |
-| **Firebase Configuration** | **Incomplete / Missing** | `google-services` plugin is configured with `MissingGoogleServicesStrategy.WARN`. The required `google-services.json` file is absent from the repository. |
-| **Gemini AI Integration** | **Unimplemented** | Advertised in `metadata.json` and `.env.example`, but zero Gemini SDK calls exist in the Kotlin codebase. |
-| **Network Client** | **Unused** | Retrofit, OkHttp, and Moshi dependencies are packaged in `build.gradle.kts` but never instantiated. |
-| **Code Shrinking & R8** | **Disabled in Release** | `app/build.gradle.kts` sets `isMinifyEnabled = false` for release builds. |
-| **Alarm Permission Mismatch**| **Configuration Issue** | `SCHEDULE_EXACT_ALARM` is declared in `AndroidManifest.xml`, but the code uses `setInexactRepeating()`. |
-| **Database Encryption** | **Missing** | SQLite database files are stored in plaintext on disk without SQLCipher. |
+| **Local Backup & Recovery** | **Hardened** | `ProfileScreen.kt` clearly labels local backup & recovery; snapshots are encrypted at rest with Android Keystore AES-256-GCM; passkeys are hashed with salted PBKDF2-HMAC-SHA256; `syncKey` is excluded from JSON exports. |
+| **ADB & Cloud Extraction** | **Hardened** | `android:allowBackup="false"` and explicit `<exclude>` rules in `backup_rules.xml` and `data_extraction_rules.xml` protect `habitflow.db` and backup preferences. |
+| **Code Shrinking & R8** | **Enabled in Release** | `app/build.gradle.kts` enables `isMinifyEnabled = true` and `isShrinkResources = true` for release builds with Room & Compose keep rules in `app/proguard-rules.pro`. |
+| **Alarm Permissions** | **Resolved** | Unused `SCHEDULE_EXACT_ALARM` permission removed from `AndroidManifest.xml`. |
+| **Unused Dependencies** | **Pruned** | Unused networking and Firebase libraries are commented out in `app/build.gradle.kts`. |
+| **Database Configuration** | **Prepared** | `AppDatabase.kt` provides a clean `DatabaseSecurityConfig` hook without hardcoded credentials and restricts destructive fallback migrations to legacy versions `1, 2`. |
 
 ---
 

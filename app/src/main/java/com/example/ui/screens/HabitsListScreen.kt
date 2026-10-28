@@ -73,7 +73,7 @@ fun HabitsListScreen(
     habits: List<HabitEntity>,
     categories: List<CategoryEntity>,
     isHabitLimitUnlocked: Boolean = true,
-    maxHabitsAllowed: Int = 3,
+    maxHabitsAllowed: Int = 10,
     onHabitClick: (Long) -> Unit,
     onAddHabitClick: () -> Unit,
     onEditHabitClick: (HabitEntity) -> Unit,
@@ -124,11 +124,7 @@ fun HabitsListScreen(
                             color = MonoBlack
                         )
                         Text(
-                            text = if (isHabitLimitUnlocked) {
-                                "${habits.size} active routines"
-                            } else {
-                                "${habits.size}/$maxHabitsAllowed starter slots used (complete 3 days to unlock more)"
-                            },
+                            text = "${habits.size}/$maxHabitsAllowed active routines (3–10 habits)",
                             fontSize = 12.sp,
                             color = MonoGrayMedium
                         )

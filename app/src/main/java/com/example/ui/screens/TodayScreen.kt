@@ -61,7 +61,6 @@ import com.example.data.model.ProgressStats
 import com.example.data.model.UserProfileEntity
 import com.example.ui.components.CircularProgressGauge
 import com.example.ui.components.HabitIconBadge
-import com.example.ui.components.HeatmapView
 import com.example.ui.theme.AccentHeart
 import com.example.ui.theme.AccentHeartBg
 import com.example.ui.theme.MonoBlack
@@ -217,9 +216,21 @@ fun TodayScreen(
                 }
             }
 
-            // Personalized Morning Message Card
+            // Daily Start Notification & Greeting Card
             if (showMorningBanner) {
                 item {
+                    val streakGoalCount = if (totalCount > 0) {
+                        kotlin.math.ceil(totalCount * UserProfileEntity.STREAK_THRESHOLD_RATIO).toInt().coerceAtLeast(1)
+                    } else {
+                        0
+                    }
+                    val remainingForStreak = (streakGoalCount - completedCount).coerceAtLeast(0)
+                    val dailySummaryLine = when {
+                        totalCount == 0 -> "Start your day by adding between ${UserProfileEntity.MIN_HABITS_COUNT} and ${UserProfileEntity.MAX_HABITS_LIMIT} daily habits."
+                        remainingForStreak == 0 -> "Daily streak goal reached ($completedCount/$totalCount done) · Keep going for a 100% Perfect Day!"
+                        else -> "$totalCount habits scheduled today · Complete $remainingForStreak more to secure your ${progressStats.currentStreakDays + 1}-day streak."
+                    }
+
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -259,7 +270,7 @@ fun TodayScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "Morning Motivation · ${userProfile.morningReminderTime}",
+                                        text = "Daily Start · $dateDisplay (${userProfile.morningReminderTime})",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = MonoBlack
@@ -268,11 +279,19 @@ fun TodayScreen(
                                 Spacer(modifier = Modifier.height(3.dp))
                                 Text(
                                     text = userProfile.customMorningMessage.ifBlank {
-                                        "Complete at least 70% of today's habits to earn your daily streak! Every 7 streak days rewards +1 recovery life."
+                                        "Small consistent actions build lasting discipline. Focus on your top priorities first today."
                                     },
                                     fontSize = 12.sp,
-                                    color = MonoGrayMedium,
+                                    color = MonoBlack,
                                     lineHeight = 17.sp
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = dailySummaryLine,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MonoGrayMedium,
+                                    lineHeight = 15.sp
                                 )
                             }
 
@@ -282,7 +301,7 @@ fun TodayScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "Dismiss morning message",
+                                    contentDescription = "Dismiss daily start message",
                                     tint = MonoGrayMedium,
                                     modifier = Modifier.size(15.dp)
                                 )
@@ -397,17 +416,6 @@ fun TodayScreen(
                 }
             }
 
-            // Daily Activity Heatmap on Home Page (Current Month Calendar for new users)
-            item {
-                HeatmapView(
-                    heatmapGrid = progressStats.heatmapGrid,
-                    currentMonthCells = progressStats.currentMonthHeatmap,
-                    currentMonthTitle = progressStats.currentMonthTitle,
-                    isNewUser = progressStats.isNewUser,
-                    modifier = Modifier.testTag("home_activity_heatmap")
-                )
-            }
-
             // Today's Habits Section Header
             item {
                 Row(
@@ -424,13 +432,11 @@ fun TodayScreen(
                             fontWeight = FontWeight.Bold,
                             color = MonoBlack
                         )
-                        if (!progressStats.isHabitLimitUnlocked) {
-                            Text(
-                                text = "${todayHabits.size}/${progressStats.maxHabitsAllowed} starter slots used · 3 active days unlocks unlimited",
-                                fontSize = 11.sp,
-                                color = MonoGrayMedium
-                            )
-                        }
+                        Text(
+                            text = "${todayHabits.size}/${progressStats.maxHabitsAllowed} habits (${UserProfileEntity.MIN_HABITS_COUNT}–${UserProfileEntity.MAX_HABITS_LIMIT} entries)",
+                            fontSize = 11.sp,
+                            color = MonoGrayMedium
+                        )
                     }
 
                     Row(
