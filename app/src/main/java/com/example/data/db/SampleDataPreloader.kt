@@ -2,11 +2,7 @@ package com.example.data.db
 
 import com.example.data.model.CategoryEntity
 import com.example.data.model.HabitEntity
-import com.example.data.model.HabitLogEntity
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
+import com.example.data.model.UserProfileEntity
 
 object SampleDataPreloader {
 
@@ -14,17 +10,20 @@ object SampleDataPreloader {
         CategoryEntity(name = "Productivity", isDefault = true),
         CategoryEntity(name = "Health", isDefault = true),
         CategoryEntity(name = "Learning", isDefault = true),
-        CategoryEntity(name = "Lifestyle", isDefault = true)
+        CategoryEntity(name = "Lifestyle", isDefault = true),
+        CategoryEntity(name = "Fitness", isDefault = true),
+        CategoryEntity(name = "Mindfulness", isDefault = true)
     )
 
-    val defaultHabits = listOf(
+    // Limited to UserProfileEntity.NEW_USER_MAX_HABITS (3) starter habits for new users, with zero fake logs.
+    val defaultStarterHabits = listOf(
         HabitEntity(
             id = 1,
             title = "Read",
-            subtitle = "30 minutes",
+            subtitle = "Read 20 pages of a book",
             category = "Learning",
             iconName = "book",
-            goalDuration = "30 minutes per day",
+            goalDuration = "30 min",
             frequency = "Daily",
             reminderTime = "8:30 AM",
             reminderEnabled = true,
@@ -33,10 +32,10 @@ object SampleDataPreloader {
         HabitEntity(
             id = 2,
             title = "Workout",
-            subtitle = "45 minutes",
-            category = "Health",
+            subtitle = "Strength & mobility training",
+            category = "Fitness",
             iconName = "fitness",
-            goalDuration = "45 minutes per day",
+            goalDuration = "45 min",
             frequency = "Daily",
             reminderTime = "7:00 AM",
             reminderEnabled = true,
@@ -44,100 +43,44 @@ object SampleDataPreloader {
         ),
         HabitEntity(
             id = 3,
-            title = "Code",
-            subtitle = "Build something every day",
-            category = "Productivity",
-            iconName = "code",
-            goalDuration = "1 hour per day",
-            frequency = "Daily",
-            reminderTime = "9:00 AM",
-            reminderEnabled = true,
-            orderIndex = 2
-        ),
-        HabitEntity(
-            id = 4,
-            title = "Drink water",
-            subtitle = "8 glasses",
+            title = "Drink Water",
+            subtitle = "Stay hydrated throughout the day",
             category = "Health",
             iconName = "water",
-            goalDuration = "8 glasses per day",
+            goalDuration = "8 glasses",
             frequency = "Daily",
             reminderTime = "10:00 AM",
             reminderEnabled = true,
-            orderIndex = 3
-        ),
-        HabitEntity(
-            id = 5,
-            title = "Sleep early",
-            subtitle = "Before 11:00 PM",
-            category = "Lifestyle",
-            iconName = "moon",
-            goalDuration = "Before 11:00 PM",
-            frequency = "Daily",
-            reminderTime = "10:30 PM",
-            reminderEnabled = true,
-            orderIndex = 4
+            orderIndex = 2
         )
     )
-
-    fun generateInitialLogs(todayDate: Date = Date()): List<HabitLogEntity> {
-        val logs = mutableListOf<HabitLogEntity>()
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        val cal = Calendar.getInstance()
-        cal.time = todayDate
-
-        val todayStr = dateFormat.format(cal.time)
-        logs.add(HabitLogEntity(habitId = 1, dateString = todayStr, completed = true))
-        logs.add(HabitLogEntity(habitId = 2, dateString = todayStr, completed = true))
-        logs.add(HabitLogEntity(habitId = 3, dateString = todayStr, completed = true))
-        logs.add(HabitLogEntity(habitId = 4, dateString = todayStr, completed = false))
-        logs.add(HabitLogEntity(habitId = 5, dateString = todayStr, completed = false))
-
-        val randomSeed = java.util.Random(42)
-
-        for (dayOffset in 1..180) {
-            val pastCal = Calendar.getInstance()
-            pastCal.time = todayDate
-            pastCal.add(Calendar.DAY_OF_YEAR, -dayOffset)
-            val pastDateStr = dateFormat.format(pastCal.time)
-
-            val isStreakDay = dayOffset in 1..6
-
-            defaultHabits.forEach { habit ->
-                val completed = if (isStreakDay) {
-                    if (habit.id == 3L || habit.id == 1L) true
-                    else randomSeed.nextFloat() > 0.15f
-                } else {
-                    randomSeed.nextFloat() > 0.22f
-                }
-
-                if (completed) {
-                    logs.add(
-                        HabitLogEntity(
-                            habitId = habit.id,
-                            dateString = pastDateStr,
-                            completed = true,
-                            completedAt = pastCal.timeInMillis
-                        )
-                    )
-                }
-            }
-        }
-
-        return logs
-    }
 
     suspend fun seedDatabaseIfEmpty(dao: HabitDao) {
         val existingCategories = dao.getAllCategoriesSync()
         if (existingCategories.isEmpty()) {
             dao.insertCategories(defaultCategories)
+        } else {
+            // Ensure all standard categories exist without duplicating
+            val existingNames = existingCategories.map { it.name.lowercase() }.toSet()
+            val missing = defaultCategories.filter { it.name.lowercase() !in existingNames }
+            if (missing.isNotEmpty()) {
+                dao.insertCategories(missing)
+            }
         }
 
-        val existingHabits = dao.getAllHabitsList()
-        if (existingHabits.isEmpty()) {
-            dao.insertHabits(defaultHabits)
-            val logs = generateInitialLogs()
-            dao.insertLogs(logs)
+        val existingProfile = dao.getUserProfileSync()
+        if (existingProfile == null) {
+            val existingHabits = dao.getAllHabitsList()
+            if (existingHabits.isEmpty()) {
+                dao.insertHabits(defaultStarterHabits)
+            }
+            dao.insertOrUpdateUserProfile(
+                UserProfileEntity(
+                    id = 1,
+                    livesCount = UserProfileEntity.INITIAL_LIVES_COUNT,
+                    hasSeededInitialData = true
+                )
+            )
         }
     }
 }

@@ -5,10 +5,12 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.example.data.model.CategoryEntity
 import com.example.data.model.HabitEntity
 import com.example.data.model.HabitLogEntity
+import com.example.data.model.UserProfileEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -26,6 +28,9 @@ interface HabitDao {
 
     @Query("SELECT * FROM habits WHERE id = :id LIMIT 1")
     suspend fun getHabitByIdSync(id: Long): HabitEntity?
+
+    @Query("SELECT * FROM habits WHERE LOWER(TRIM(title)) = LOWER(TRIM(:title)) LIMIT 1")
+    suspend fun getHabitByTitleSync(title: String): HabitEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHabit(habit: HabitEntity): Long
@@ -48,6 +53,9 @@ interface HabitDao {
 
     @Query("SELECT * FROM habit_logs WHERE dateString = :dateString")
     suspend fun getLogsForDateSync(dateString: String): List<HabitLogEntity>
+
+    @Query("SELECT * FROM habit_logs WHERE habitId = :habitId AND dateString = :dateString LIMIT 1")
+    suspend fun getLogForHabitAndDateSync(habitId: Long, dateString: String): HabitLogEntity?
 
     @Query("SELECT * FROM habit_logs WHERE habitId = :habitId")
     fun getLogsForHabit(habitId: Long): Flow<List<HabitLogEntity>>
@@ -89,10 +97,13 @@ interface HabitDao {
     @Query("SELECT * FROM categories ORDER BY isDefault DESC, name ASC")
     suspend fun getAllCategoriesSync(): List<CategoryEntity>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Query("SELECT * FROM categories WHERE LOWER(TRIM(name)) = LOWER(TRIM(:name)) LIMIT 1")
+    suspend fun getCategoryByNameSync(name: String): CategoryEntity?
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertCategory(category: CategoryEntity): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertCategories(categories: List<CategoryEntity>): List<Long>
 
     @Query("DELETE FROM categories WHERE id = :id AND isDefault = 0")
@@ -103,4 +114,33 @@ interface HabitDao {
 
     @Query("DELETE FROM categories")
     suspend fun clearAllCategories()
+
+    // User Profile & Settings
+    @Query("SELECT * FROM user_profile WHERE id = 1 LIMIT 1")
+    fun getUserProfile(): Flow<UserProfileEntity?>
+
+    @Query("SELECT * FROM user_profile WHERE id = 1 LIMIT 1")
+    suspend fun getUserProfileSync(): UserProfileEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertOrUpdateUserProfile(profile: UserProfileEntity)
+
+    @Query("DELETE FROM user_profile")
+    suspend fun clearUserProfile()
+
+    @Transaction
+    suspend fun restoreFullSnapshot(
+        profile: UserProfileEntity,
+        categories: List<CategoryEntity>,
+        habits: List<HabitEntity>,
+        logs: List<HabitLogEntity>
+    ) {
+        clearAllLogs()
+        clearAllHabits()
+        clearAllCategories()
+        insertOrUpdateUserProfile(profile)
+        insertCategories(categories)
+        insertHabits(habits)
+        insertLogs(logs)
+    }
 }

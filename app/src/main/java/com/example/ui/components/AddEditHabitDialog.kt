@@ -220,7 +220,13 @@ fun AddEditHabitBottomSheet(
                             .clip(RoundedCornerShape(16.dp))
                             .background(if (isSelected) MonoBlack else MonoWhite)
                             .border(BorderStroke(1.dp, if (isSelected) MonoBlack else MonoBorder), RoundedCornerShape(16.dp))
-                            .clickable { category = cat }
+                            .clickable {
+                                category = cat
+                                selectedIconGroupIndex = HabitIcons.getGroupIndexForCategory(cat)
+                                if (habitToEdit == null) {
+                                    iconName = HabitIcons.getDefaultIconForCategory(cat)
+                                }
+                            }
                             .padding(horizontal = 14.dp, vertical = 7.dp)
                     ) {
                         Text(

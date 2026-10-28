@@ -70,9 +70,11 @@ import com.example.ui.theme.CatNeutralText
 import com.example.ui.theme.MonoBlack
 import com.example.ui.theme.MonoBorder
 import com.example.ui.theme.MonoSurfaceVariant
+import com.example.ui.theme.MonoWhite
 
 data class IconCategoryGroup(
     val categoryName: String,
+    val defaultIconKey: String,
     val iconKeys: List<String>
 )
 
@@ -80,98 +82,115 @@ object HabitIcons {
 
     val iconGroups = listOf(
         IconCategoryGroup(
-            "Fitness",
-            listOf("fitness", "run", "walk", "bike", "pool", "sports", "timer", "fire")
+            categoryName = "Productivity",
+            defaultIconKey = "code",
+            iconKeys = listOf("code", "laptop", "work", "task", "rocket", "lightbulb", "alarm", "flag")
         ),
         IconCategoryGroup(
-            "Health",
-            listOf("water", "heart", "moon", "pharmacy", "restaurant", "spa", "clean", "sun")
+            categoryName = "Health",
+            defaultIconKey = "water",
+            iconKeys = listOf("water", "heart", "moon", "pharmacy", "restaurant", "spa", "clean", "sun")
         ),
         IconCategoryGroup(
-            "Productivity",
-            listOf("code", "laptop", "work", "task", "rocket", "lightbulb", "alarm", "flag")
+            categoryName = "Learning",
+            defaultIconKey = "book",
+            iconKeys = listOf("book", "school", "language", "science", "psychology", "calculate", "edit", "library")
         ),
         IconCategoryGroup(
-            "Learning",
-            listOf("book", "school", "language", "science", "psychology", "calculate", "edit", "library")
+            categoryName = "Lifestyle",
+            defaultIconKey = "coffee",
+            iconKeys = listOf("coffee", "pets", "savings", "flight", "home", "brush", "celebration", "star")
         ),
         IconCategoryGroup(
-            "Mindfulness",
-            listOf("meditation", "park", "nature", "air", "peace", "music", "draw", "night")
+            categoryName = "Fitness",
+            defaultIconKey = "fitness",
+            iconKeys = listOf("fitness", "run", "walk", "bike", "pool", "sports", "timer", "fire")
         ),
         IconCategoryGroup(
-            "Lifestyle",
-            listOf("coffee", "pets", "savings", "flight", "home", "brush", "celebration", "star")
+            categoryName = "Mindfulness",
+            defaultIconKey = "meditation",
+            iconKeys = listOf("meditation", "park", "nature", "air", "peace", "music", "draw", "night")
         )
     )
 
+    val allIconKeys: List<String> = iconGroups.flatMap { it.iconKeys }.distinct()
+
+    fun getGroupIndexForCategory(categoryName: String): Int {
+        val idx = iconGroups.indexOfFirst { it.categoryName.equals(categoryName.trim(), ignoreCase = true) }
+        return if (idx >= 0) idx else 0
+    }
+
+    fun getDefaultIconForCategory(categoryName: String): String {
+        val group = iconGroups.find { it.categoryName.equals(categoryName.trim(), ignoreCase = true) }
+        return group?.defaultIconKey ?: "task"
+    }
+
     fun getIconVector(iconName: String): ImageVector {
-        return when (iconName.lowercase()) {
+        return when (iconName.trim().lowercase()) {
             // Fitness
-            "fitness", "workout" -> Icons.Default.FitnessCenter
-            "run" -> Icons.Default.DirectionsRun
-            "walk" -> Icons.Default.DirectionsWalk
-            "bike" -> Icons.Default.DirectionsBike
+            "fitness", "workout", "gym" -> Icons.Default.FitnessCenter
+            "run", "jog" -> Icons.Default.DirectionsRun
+            "walk", "steps" -> Icons.Default.DirectionsWalk
+            "bike", "cycle" -> Icons.Default.DirectionsBike
             "pool", "swim" -> Icons.Default.Pool
-            "sports" -> Icons.Default.SportsGymnastics
-            "timer" -> Icons.Default.Timer
-            "fire" -> Icons.Default.LocalFireDepartment
+            "sports", "yoga" -> Icons.Default.SportsGymnastics
+            "timer", "stopwatch" -> Icons.Default.Timer
+            "fire", "streak" -> Icons.Default.LocalFireDepartment
 
             // Health
-            "water", "drink" -> Icons.Default.WaterDrop
-            "heart" -> Icons.Default.Favorite
-            "moon", "sleep" -> Icons.Default.Bedtime
-            "pharmacy" -> Icons.Default.LocalPharmacy
-            "restaurant", "food" -> Icons.Default.Restaurant
-            "spa" -> Icons.Default.Spa
-            "clean" -> Icons.Default.CleanHands
-            "sun" -> Icons.Default.WbSunny
+            "water", "drink", "hydrate" -> Icons.Default.WaterDrop
+            "heart", "health" -> Icons.Default.Favorite
+            "moon", "sleep", "bed" -> Icons.Default.Bedtime
+            "pharmacy", "vitamins", "medicine" -> Icons.Default.LocalPharmacy
+            "restaurant", "food", "diet", "nutrition" -> Icons.Default.Restaurant
+            "spa", "relax" -> Icons.Default.Spa
+            "clean", "hygiene" -> Icons.Default.CleanHands
+            "sun", "morning" -> Icons.Default.WbSunny
 
             // Productivity
-            "code" -> Icons.Default.Code
+            "code", "programming", "dev" -> Icons.Default.Code
             "laptop", "computer" -> Icons.Default.Computer
-            "work" -> Icons.Default.Work
-            "task" -> Icons.Default.Checklist
-            "rocket" -> Icons.Default.RocketLaunch
-            "lightbulb" -> Icons.Default.Lightbulb
-            "alarm" -> Icons.Default.AccessTime
-            "flag" -> Icons.Default.Flag
+            "work", "career", "productivity" -> Icons.Default.Work
+            "task", "checklist", "todo" -> Icons.Default.Checklist
+            "rocket", "launch", "focus" -> Icons.Default.RocketLaunch
+            "lightbulb", "idea" -> Icons.Default.Lightbulb
+            "alarm", "time" -> Icons.Default.AccessTime
+            "flag", "goal" -> Icons.Default.Flag
 
             // Learning
-            "book", "read" -> Icons.Default.MenuBook
-            "school" -> Icons.Default.School
-            "language" -> Icons.Default.Language
-            "science" -> Icons.Default.Science
-            "psychology" -> Icons.Default.Psychology
-            "calculate" -> Icons.Default.Calculate
-            "edit" -> Icons.Default.Edit
-            "library" -> Icons.Default.LocalLibrary
+            "book", "read", "reading" -> Icons.Default.MenuBook
+            "school", "learning", "study" -> Icons.Default.School
+            "language", "speak" -> Icons.Default.Language
+            "science", "lab" -> Icons.Default.Science
+            "psychology", "brain", "mind" -> Icons.Default.Psychology
+            "calculate", "math" -> Icons.Default.Calculate
+            "edit", "write", "journal" -> Icons.Default.Edit
+            "library", "courses" -> Icons.Default.LocalLibrary
 
             // Mindfulness
-            "meditation" -> Icons.Default.SelfImprovement
-            "park" -> Icons.Default.Park
-            "nature" -> Icons.Default.NaturePeople
-            "air" -> Icons.Default.Air
-            "peace" -> Icons.Default.Forest
-            "music" -> Icons.Default.MusicNote
-            "draw" -> Icons.Default.Palette
-            "night" -> Icons.Default.NightsStay
+            "meditation", "mindfulness", "breathe" -> Icons.Default.SelfImprovement
+            "park", "outdoors" -> Icons.Default.Park
+            "nature", "walk_nature" -> Icons.Default.NaturePeople
+            "air", "breath" -> Icons.Default.Air
+            "peace", "forest" -> Icons.Default.Forest
+            "music", "instrument" -> Icons.Default.MusicNote
+            "draw", "art", "paint" -> Icons.Default.Palette
+            "night", "evening" -> Icons.Default.NightsStay
 
             // Lifestyle
-            "coffee" -> Icons.Default.LocalCafe
-            "pets" -> Icons.Default.Pets
-            "savings" -> Icons.Default.Savings
-            "flight" -> Icons.Default.Flight
-            "home" -> Icons.Default.Home
-            "brush" -> Icons.Default.Brush
-            "celebration" -> Icons.Default.Celebration
-            "star" -> Icons.Default.Star
+            "coffee", "tea" -> Icons.Default.LocalCafe
+            "pets", "dog", "cat" -> Icons.Default.Pets
+            "savings", "finance", "money" -> Icons.Default.Savings
+            "flight", "travel" -> Icons.Default.Flight
+            "home", "chores", "lifestyle" -> Icons.Default.Home
+            "brush", "creative" -> Icons.Default.Brush
+            "celebration", "social" -> Icons.Default.Celebration
+            "star", "favorite" -> Icons.Default.Star
 
             else -> Icons.Default.Checklist
         }
     }
 
-    // Always returns monochrome styling
     fun getCategoryColors(category: String): Pair<Color, Color> {
         return Pair(CatNeutralBg, CatNeutralText)
     }
@@ -190,19 +209,20 @@ fun HabitIconBadge(
 ) {
     val shape = if (isRoundedRect) RoundedCornerShape(14.dp) else CircleShape
     val actualBg = if (isSelected) MonoBlack else backgroundColor
-    val actualTint = if (isSelected) Color.White else iconTint
+    val actualTint = if (isSelected) MonoWhite else iconTint
+    val borderColor = if (isSelected) MonoBlack else MonoBorder
 
     Box(
         modifier = modifier
             .size(size)
             .clip(shape)
             .background(actualBg)
-            .border(BorderStroke(1.dp, MonoBorder), shape),
+            .border(BorderStroke(1.dp, borderColor), shape),
         contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = HabitIcons.getIconVector(iconName),
-            contentDescription = null,
+            contentDescription = iconName,
             modifier = Modifier.size(iconSize),
             tint = actualTint
         )
