@@ -231,7 +231,7 @@ class HabitRepository(
         }
 
         // Unlock more than 3 habits once user has >= 3 active completed days or >= 3 streak days
-        val isHabitLimitUnlocked = activeLoggedDates.size >= 3 || streakEval.currentStreakDays >= 3
+        val isHabitLimitUnlocked = activeLoggedDates.size >= 10 || streakEval.currentStreakDays >= 10
         val maxHabitsAllowed = if (isHabitLimitUnlocked) 50 else UserProfileEntity.NEW_USER_MAX_HABITS
 
         if (habits.isEmpty()) {
@@ -777,7 +777,7 @@ class HabitRepository(
             val currentHabits = habitDao.getAllHabitsList()
             val allLogs = habitDao.getAllLogsSync()
             val activeDays = allLogs.filter { it.completed }.map { it.dateString }.distinct().size
-            val isUnlocked = activeDays >= 3
+            val isUnlocked = activeDays >= 10
             if (!isUnlocked && currentHabits.size >= UserProfileEntity.NEW_USER_MAX_HABITS) {
                 throw IllegalStateException(
                     "New users can track up to ${UserProfileEntity.NEW_USER_MAX_HABITS} core habits initially. Complete habits across 3 days to unlock unlimited habits!"
